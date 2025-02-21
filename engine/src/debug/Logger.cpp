@@ -23,3 +23,7 @@ void Logger::log(LogLevel level, const std::string& message) {
             break;
     }
 }
+
+void Logger::error(const std::string& message) {
+    log(LogLevel::error, message);
+}

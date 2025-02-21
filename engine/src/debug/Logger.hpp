@@ -7,7 +7,7 @@ namespace debug {
     
     class Logger {
         static void log(LogLevel level, const std::string& message);
+        public:
+            static void error(const std::string& message);
     };
-
-
 }

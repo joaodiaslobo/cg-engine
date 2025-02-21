@@ -1,6 +1,6 @@
 #pragma once
 
-#include "settings.hpp"
+#include "../settings.hpp"
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 
@@ -22,4 +22,6 @@ public:
     static glm::vec2 size() {
         return glm::vec2(width, height);
     }
+
+    static void setFramerate(int framerate);
 };
