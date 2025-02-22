@@ -5,7 +5,7 @@
 #include <glm/glm.hpp>
 
 class Window {
-    static GLFWwindow* window;
+    static GLFWwindow* glfwWindow;
     static DisplaySettings* settings;
     static bool fullscreen;
     static int framerate;
@@ -14,7 +14,7 @@ public:
     static int posY;
     static unsigned int width;
     static unsigned int height;
-    static int initialize(DisplaySettings* settings);
+    static bool initialize(DisplaySettings* settings);
     static void terminate();
 
     static DisplaySettings* getSettings();
@@ -24,4 +24,6 @@ public:
     }
 
     static void setFramerate(int framerate);
+
+    static GLFWwindow* getGlfwWindow();
 };

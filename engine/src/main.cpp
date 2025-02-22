@@ -1,17 +1,15 @@
 #include <iostream>
 #include "settings.hpp"
-#include "window/Window.hpp"
+#include "engine/Engine.hpp"
 
 int main(const int argc, char *argv[])
 {
-    DisplaySettings settings;
-    settings.width = 800;
-    settings.height = 600;
-    settings.fullscreen = false;
-
-    if (Window::initialize(&settings) == -1) {
+    Engine engine;
+    if (!engine.initialize()) {
         return -1;
     }
+
+    engine.run();
 
     return 0;
 }

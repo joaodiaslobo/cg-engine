@@ -1,7 +1,8 @@
 {
   "dependencies": [
     "glfw3",
-    "tinyxml2",
-    "glm"
+    "opengl",
+    "glm",
+    "tinyxml2"
   ]
 }

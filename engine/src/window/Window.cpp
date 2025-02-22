@@ -1,29 +1,37 @@
 #include "Window.hpp"
-#include "../settings.hpp"
+
+#include "settings.hpp"
 #include <GLFW/glfw3.h>
-#include "../debug/Logger.hpp"
+#include "debug/Logger.hpp"
 
 static debug::Logger logger;
+GLFWwindow* Window::glfwWindow = nullptr;
+DisplaySettings* Window::settings = nullptr;
+int Window::framerate = 0;
+unsigned int Window::width = 0;
+unsigned int Window::height = 0;
 
-int Window::initialize(DisplaySettings *settings) {
+bool Window::initialize(DisplaySettings *settings) {
     Window::settings = settings;
     Window::width = settings->width;
     Window::height = settings->height;
 
     if(glfwInit() == GLFW_FALSE) {
         logger.error("Failed to initialize GLFW.");
-        return -1;
+        return false;
     }
 
-    window = glfwCreateWindow(width, height, "CG@DI", nullptr, nullptr);
+    glfwWindow = glfwCreateWindow(width, height, "CG@DI", nullptr, nullptr);
 
-    if (window == nullptr) {
+    if (glfwWindow == nullptr) {
         logger.error("Failed to create GLFW window.");
         glfwTerminate();
-        return -1;
+        return false;
     }
 
-    glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(glfwWindow);
+
+    return true;
 }
 
 void Window::setFramerate(int framerate) {
@@ -31,4 +39,13 @@ void Window::setFramerate(int framerate) {
         glfwSwapInterval(framerate == -1);
     }
     Window::framerate = framerate;
+}
+
+GLFWwindow* Window::getGlfwWindow() {
+    return glfwWindow;
+}
+
+void Window::terminate() {
+    glfwDestroyWindow(glfwWindow);
+    glfwTerminate();
 }
