@@ -1,29 +1,30 @@
 #pragma once
 
-#include "../settings.hpp"
 #include <GLFW/glfw3.h>
+
 #include <glm/glm.hpp>
 
+#include "../settings.hpp"
+
 class Window {
-    static GLFWwindow* glfwWindow;
-    static DisplaySettings* settings;
-    static bool fullscreen;
-    static int framerate;
-public:
-    static int posX;
-    static int posY;
-    static unsigned int width;
-    static unsigned int height;
-    static bool initialize(DisplaySettings* settings);
-    static void terminate();
+  static GLFWwindow* glfwWindow;
+  static DisplaySettings* settings;
+  static bool fullscreen;
+  static int framerate;
 
-    static DisplaySettings* getSettings();
+ public:
+  static int posX;
+  static int posY;
+  static unsigned int width;
+  static unsigned int height;
+  static bool initialize(DisplaySettings* settings);
+  static void terminate();
 
-    static glm::vec2 size() {
-        return glm::vec2(width, height);
-    }
+  static DisplaySettings* getSettings();
 
-    static void setFramerate(int framerate);
+  static glm::vec2 size() { return glm::vec2(width, height); }
 
-    static GLFWwindow* getGlfwWindow();
+  static void setFramerate(int framerate);
+
+  static GLFWwindow* getGlfwWindow();
 };
