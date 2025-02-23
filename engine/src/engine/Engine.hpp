@@ -9,4 +9,6 @@ class Engine {
 
  private:
   Window window;
+  Scene scene;
+  Camera camera;
 };

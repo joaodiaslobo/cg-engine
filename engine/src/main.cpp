@@ -5,8 +5,13 @@
 
 int main(const int argc, char *argv[]) {
   Engine engine;
-  if (!engine.initialize()) {
-    return -1;
+
+  if(argc == 1) {    
+    if (!engine.initialize()) {
+      return -1;
+    }
+  } else {
+    
   }
 
   engine.run();

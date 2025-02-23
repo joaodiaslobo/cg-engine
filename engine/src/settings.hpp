@@ -1,5 +1,9 @@
 #pragma once
 
+struct EngineSettings {
+  DisplaySettings display;
+};
+
 struct DisplaySettings {
   bool fullscreen = false;
   int width = 1280;
