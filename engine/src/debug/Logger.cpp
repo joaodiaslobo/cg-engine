@@ -27,3 +27,5 @@ void Logger::log(LogLevel level, const std::string& message) {
 void Logger::error(const std::string& message) {
   log(LogLevel::error, message);
 }
+
+void Logger::info(const std::string& message) { log(LogLevel::info, message); }

@@ -6,3 +6,7 @@ struct DisplaySettings {
   int height = 720;
   int framerate = 120;
 };
+
+struct EngineSettings {
+  DisplaySettings *display;
+};

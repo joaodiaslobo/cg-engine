@@ -12,7 +12,7 @@ int Window::framerate = 0;
 unsigned int Window::width = 0;
 unsigned int Window::height = 0;
 
-bool Window::initialize(DisplaySettings* settings) {
+bool Window::initialize(DisplaySettings* settings, const char* title) {
   Window::settings = settings;
   Window::width = settings->width;
   Window::height = settings->height;
@@ -22,7 +22,7 @@ bool Window::initialize(DisplaySettings* settings) {
     return false;
   }
 
-  glfwWindow = glfwCreateWindow(width, height, "CG@DI", nullptr, nullptr);
+  glfwWindow = glfwCreateWindow(width, height, title, nullptr, nullptr);
 
   if (glfwWindow == nullptr) {
     logger.error("Failed to create GLFW window.");

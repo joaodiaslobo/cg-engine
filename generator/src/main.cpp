@@ -4,6 +4,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Generator.hpp"
+
 void printUsage() {
   std::cout
       << "Usage:\n"
@@ -28,6 +30,14 @@ void handleCone(const std::vector<std::string>& args) {
   std::cout << "Generating cone with radius " << args[1] << ", height "
             << args[2] << ", slices " << args[3] << ", stacks " << args[4]
             << " | Output: " << args[5] << std::endl;
+
+  float radius = std::stof(args[1]);
+  float height = std::stof(args[2]);
+  int slices = std::stoi(args[3]);
+  int stacks = std::stoi(args[4]);
+
+  Model model = generator::Cone(radius, height, slices, stacks);
+  generator::Export(model, args[5]);
 }
 
 void handlePlane(const std::vector<std::string>& args) {
