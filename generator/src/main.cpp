@@ -43,6 +43,12 @@ void handleCone(const std::vector<std::string>& args) {
 void handlePlane(const std::vector<std::string>& args) {
   std::cout << "Generating plane with length " << args[1] << ", divisions "
             << args[2] << " | Output: " << args[3] << std::endl;
+
+  float length = std::stof(args[1]);
+  int divisions = std::stoi(args[2]);
+
+  Model model = generator::Plane(length, divisions);
+  generator::Export(model, args[3]);
 }
 
 int main(int argc, char* argv[]) {

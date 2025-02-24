@@ -54,6 +54,26 @@ Model Cone(float radius, float height, int slices, int stacks) {
   return {vertices};
 }
 
+Model Plane(float length, int divisions) {
+  vector<vec3> vertices;
+
+  float divisionSize = length / divisions;
+
+  for (int x = 0; x < divisions; x++) {
+    for (int z = 0; z < divisions; z++) {
+      vec3 bottomLeft = vec3(x * divisionSize, 0, z * divisionSize);
+      vec3 bottomRight = vec3((x + 1) * divisionSize, 0, z * divisionSize);
+      vec3 topLeft = vec3(x * divisionSize, 0, (z + 1) * divisionSize);
+      vec3 topRight = vec3((x + 1) * divisionSize, 0, (z + 1) * divisionSize);
+
+      vertices.insert(vertices.end(), {topLeft, bottomLeft, bottomRight});
+      vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
+    }
+  }
+
+  return {vertices};
+}
+
 bool Export(const Model& model, const std::string& filename) {
   std::ofstream file(filename);
   if (!file.is_open()) {
