@@ -10,5 +10,6 @@ class Logger {
 
  public:
   static void error(const std::string& message);
+  static void info(const std::string& message);
 };
 }  // namespace debug

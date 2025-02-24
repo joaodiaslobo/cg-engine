@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
 #include "Generator.hpp"
 
 void printUsage() {
