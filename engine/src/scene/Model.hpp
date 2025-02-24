@@ -18,5 +18,8 @@ class Model {
  public:
   Model(){};
   void addVertex(vec3 vertex);
-  optional<Model> loadModel(const string& filename);
+  void setName(const string& name) { this->name = name; }
+  void render();
 };
+
+optional<Model> loadModel(const string& filename);

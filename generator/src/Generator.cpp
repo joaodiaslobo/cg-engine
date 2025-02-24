@@ -12,44 +12,44 @@ using glm::vec3;
 using std::vector;
 
 namespace generator {
+vec3 polarToCartesian(float radius, float alpha, float y) {
+  return vec3(radius * sin(alpha), y, radius * cos(alpha));
+}
+
 Model Cone(float radius, float height, int slices, int stacks) {
   vector<vec3> vertices;
 
-  float slice_size = 2 * M_PI / slices;
-  float stack_size = height / stacks;
+  float sliceSize = 2 * M_PI / slices;
+  float stackSize = height / stacks;
 
   // VERTICES
 
-  // Base center
-  vertices.push_back(vec3(0.0f, 0.0f, 0.0f));
-  int base_center_index = 0;
+  vec3 baseMiddle = vec3(0, 0, 0);
 
-  // Base circle vertices
-  for (int i = 0; i < slices; i++) {
-    float theta = i * slice_size;
-    float x = radius * cos(theta);
-    float z = radius * sin(theta);
-    vertices.push_back(vec3(x, 0.0f, z));
-  }
+  for (int slice = 0; slice < slices; slice++) {
+    for (int stack = 0; stack < stacks; stack++) {
+      float currentRadius = radius - stack * radius / stacks;
+      float nextRadius = radius - (stack + 1) * radius / stacks;
 
-  // Side surface vertices
-  int base_vertices_start = 1;
-  int side_vertices_start = base_vertices_start + slices;
-  for (int i = 1; i <= stacks; i++) {
-    float y = i * stack_size;
-    float current_radius = radius * (1.0f - (float)i / stacks);
+      vec3 bottomLeft =
+          polarToCartesian(currentRadius, slice * sliceSize, stack * stackSize);
+      vec3 bottomRight = polarToCartesian(
+          currentRadius, (slice + 1) * sliceSize, stack * stackSize);
+      vec3 topLeft = polarToCartesian(nextRadius, slice * sliceSize,
+                                      (stack + 1) * stackSize);
+      vec3 topRight = polarToCartesian(nextRadius, (slice + 1) * sliceSize,
+                                       (stack + 1) * stackSize);
 
-    for (int j = 0; j < slices; j++) {
-      float theta = j * slice_size;
-      float x = current_radius * cos(theta);
-      float z = current_radius * sin(theta);
-      vertices.push_back(vec3(x, y, z));
+      vertices.insert(vertices.end(), {topLeft, bottomLeft, bottomRight});
+      vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
     }
-  }
 
-  // Tip of the cone
-  int tip_index = vertices.size();
-  vertices.push_back(vec3(0.0f, height, 0.0f));
+    vec3 baseBottomLeft = polarToCartesian(radius, slice * sliceSize, 0);
+    vec3 baseBottomRight = polarToCartesian(radius, (slice + 1) * sliceSize, 0);
+
+    vertices.insert(vertices.end(),
+                    {baseMiddle, baseBottomRight, baseBottomLeft});
+  }
 
   return {vertices};
 }

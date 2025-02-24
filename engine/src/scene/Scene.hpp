@@ -8,4 +8,8 @@
 struct Scene {
  private:
   Group root;
+
+ public:
+  void render();
+  void setRoot(Group root) { this->root = root; }
 };

@@ -4,6 +4,9 @@
 #include <GLFW/glfw3.h>
 #include <tinyxml2.h>
 
+#include <string>
+
+#include "../scene/Group.hpp"
 #include "../scene/Scene.hpp"
 #include "../window/Camera.hpp"
 #include "../window/Window.hpp"
@@ -16,7 +19,7 @@ class Engine {
   bool initializeFromFile(const string& filename);
   void run();
   void render();
-  void updateViewport();
+  void setupProjectionAndView();
 
  private:
   Window window;

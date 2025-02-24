@@ -1,4 +1,6 @@
 #pragma once
+#include <tinyxml2.h>
+
 #include <vector>
 
 #include "Model.hpp"
@@ -12,4 +14,9 @@ class Group {
 
  public:
   Group(){};
+  void render();
+  void addChild(Group child) { children.push_back(child); }
+  void addModel(Model model) { models.push_back(model); }
 };
+
+Group initializeGroupFromXML(tinyxml2::XMLElement* element);

@@ -17,7 +17,7 @@ class Window {
   static int posY;
   static unsigned int width;
   static unsigned int height;
-  static bool initialize(DisplaySettings* settings);
+  static bool initialize(DisplaySettings* settings, const char* title);
   static void terminate();
 
   static DisplaySettings* getSettings();

@@ -8,11 +8,11 @@ bool Engine::initialize() {
   settings.height = 600;
   settings.fullscreen = false;
 
-  if (!window.initialize(&settings)) {
+  if (!window.initialize(&settings, "[CG ENGINE] - New Scene")) {
     return false;
   }
 
-  updateViewport();
+  setupProjectionAndView();
 
   return true;
 }
@@ -46,7 +46,7 @@ bool Engine::initializeFromFile(const string& filename) {
   windowElement->QueryIntAttribute("height", &settings.height);
   settings.fullscreen = false;
 
-  if (!window.initialize(&settings)) {
+  if (!window.initialize(&settings, ("[CG ENGINE] - " + filename).c_str())) {
     return false;
   }
 
@@ -93,12 +93,26 @@ bool Engine::initializeFromFile(const string& filename) {
     }
   }
 
-  updateViewport();
+  // Scene
+
+  tinyxml2::XMLElement* rootGroupElement = root->FirstChildElement("group");
+
+  if (rootGroupElement == nullptr) {
+    logger.error("Failed to find root group element in file: " + filename);
+    return false;
+  }
+
+  scene.setRoot(initializeGroupFromXML(rootGroupElement));
+
+  setupProjectionAndView();
 
   return true;
 }
 
 void Engine::run() {
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
+
   while (!glfwWindowShouldClose(window.getGlfwWindow())) {
     glfwPollEvents();
 
@@ -109,13 +123,15 @@ void Engine::run() {
   Window::terminate();
 }
 
-void Engine::updateViewport() {
+void Engine::setupProjectionAndView() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
   glViewport(0, 0, window.width, window.height);
   gluPerspective(camera.getFov(), window.width / window.height,
                  camera.getNear(), camera.getFar());
+
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   glMatrixMode(GL_MODELVIEW);
 }
@@ -151,6 +167,8 @@ void Engine::render() {
   glLoadIdentity();
 
   camera.render();
+
+  scene.render();
 
   renderSceneAxis();
 }
