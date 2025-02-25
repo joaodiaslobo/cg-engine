@@ -12,7 +12,9 @@ void printUsage() {
       << "  generator sphere <radius> <slices> <stacks> <output_file>\n"
       << "  generator box <length> <divisions> <output_file>\n"
       << "  generator cone <radius> <height> <slices> <stacks> <output_file>\n"
-      << "  generator plane <length> <divisions> <output_file>\n";
+      << "  generator plane <length> <divisions> <output_file>\n"
+      << "  generator cylinder <radius> <height> <slices> <stacks> "
+         "<output_file>\n";
 }
 
 void handleSphere(const std::vector<std::string>& args) {
