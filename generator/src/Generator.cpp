@@ -54,7 +54,6 @@ Model Cone(float radius, float height, int slices, int stacks) {
   return {vertices};
 }
 
-
 Model Plane(float length, int divisions) {
   vector<vec3> vertices;
 
