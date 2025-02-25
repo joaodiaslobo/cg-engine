@@ -54,6 +54,7 @@ Model Cone(float radius, float height, int slices, int stacks) {
   return {vertices};
 }
 
+
 Model Plane(float length, int divisions) {
   vector<vec3> vertices;
 
@@ -79,6 +80,71 @@ Model Plane(float length, int divisions) {
     }
   }
   return {vertices};
+}
+
+Model Box(float size, int divisions) {
+  float halfSize = size / 2.0f;
+  float step = size / divisions;
+  vector<vec3> vertices;
+
+  for (int i = 0; i < divisions; ++i) {
+    for (int j = 0; j < divisions; ++j) {
+      float v1 = -halfSize + i * step;
+      float u1 = -halfSize + j * step;
+      float v2 = v1 + step;
+      float u2 = u1 + step;
+
+      // Face Frontal
+      vertices.insert(vertices.end(),
+                      {vec3(v1, u1, halfSize), vec3(v2, u1, halfSize),
+                       vec3(v1, u2, halfSize)});
+      vertices.insert(vertices.end(),
+                      {vec3(v1, u2, halfSize), vec3(v2, u1, halfSize),
+                       vec3(v2, u2, halfSize)});
+
+      // Face Traseira
+      vertices.insert(vertices.end(),
+                      {vec3(v1, u1, -halfSize), vec3(v1, u2, -halfSize),
+                       vec3(v2, u1, -halfSize)});
+      vertices.insert(vertices.end(),
+                      {vec3(v1, u2, -halfSize), vec3(v2, u2, -halfSize),
+                       vec3(v2, u1, -halfSize)});
+
+      // Face Esquerda
+      vertices.insert(vertices.end(),
+                      {vec3(-halfSize, v1, u1), vec3(-halfSize, v1, u2),
+                       vec3(-halfSize, v2, u1)});
+      vertices.insert(vertices.end(),
+                      {vec3(-halfSize, v1, u2), vec3(-halfSize, v2, u2),
+                       vec3(-halfSize, v2, u1)});
+
+      // Face Direita
+      vertices.insert(vertices.end(),
+                      {vec3(halfSize, v1, u1), vec3(halfSize, v2, u1),
+                       vec3(halfSize, v1, u2)});
+      vertices.insert(vertices.end(),
+                      {vec3(halfSize, v1, u2), vec3(halfSize, v2, u1),
+                       vec3(halfSize, v2, u2)});
+
+      // Face Superior
+      vertices.insert(vertices.end(),
+                      {vec3(v1, halfSize, u1), vec3(v1, halfSize, u2),
+                       vec3(v2, halfSize, u1)});
+      vertices.insert(vertices.end(),
+                      {vec3(v1, halfSize, u2), vec3(v2, halfSize, u2),
+                       vec3(v2, halfSize, u1)});
+
+      // Face Inferior
+      vertices.insert(vertices.end(),
+                      {vec3(v1, -halfSize, u1), vec3(v2, -halfSize, u1),
+                       vec3(v1, -halfSize, u2)});
+      vertices.insert(vertices.end(),
+                      {vec3(v1, -halfSize, u2), vec3(v2, -halfSize, u1),
+                       vec3(v2, -halfSize, u2)});
+    }
+  }
+
+  return Model{vertices};
 }
 
 bool Export(const Model& model, const std::string& filename) {
