@@ -9,7 +9,7 @@
 	<group> 
   		<models> 
 			<model file="models/cylinder.3d" /> 
-			<!-- generator box 2 3 box.3d -->
+			<!-- generator cylinder 1 2 10 10 models/cylinder.3d  or  generator cylinder 1 2 10 0 models/cylinder.3d-->
  		</models>
  	</group>
 </world>
