@@ -54,6 +54,33 @@ Model Cone(float radius, float height, int slices, int stacks) {
   return {vertices};
 }
 
+Model Plane(float length, int divisions) {
+  vector<vec3> vertices;
+
+  float divisionSize = length / divisions;
+  float halfLength = length / 2.0f;
+
+  for (int x = 0; x < divisions; x++) {
+    for (int z = 0; z < divisions; z++) {
+      // Offset x and z so that the plane is centered at the origin
+      float xPos = (x * divisionSize) - halfLength;
+      float zPos = (z * divisionSize) - halfLength;
+      float xNext = ((x + 1) * divisionSize) - halfLength;
+      float zNext = ((z + 1) * divisionSize) - halfLength;
+
+      vec3 bottomLeft = vec3(xPos, 0, zPos);
+      vec3 bottomRight = vec3(xNext, 0, zPos);
+      vec3 topLeft = vec3(xPos, 0, zNext);
+      vec3 topRight = vec3(xNext, 0, zNext);
+
+      // triangles
+      vertices.insert(vertices.end(), {topLeft, bottomLeft, bottomRight});
+      vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
+    }
+  }
+  return {vertices};
+}
+
 Model Box(float size, int divisions) {
   float halfSize = size / 2.0f;
   float step = size / divisions;
