@@ -76,6 +76,9 @@ Model Plane(float length, int divisions) {
       // triangles
       vertices.insert(vertices.end(), {topLeft, bottomLeft, bottomRight});
       vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
+
+      vertices.insert(vertices.end(), {bottomRight, bottomLeft, topLeft});
+      vertices.insert(vertices.end(), {topRight, bottomRight, topLeft});
     }
   }
   return {vertices};
