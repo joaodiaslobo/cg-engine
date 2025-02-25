@@ -151,9 +151,10 @@ Model Cylinder(float radius, float height, int slices, int stacks) {
 
   float sliceSize = 2 * M_PI / slices;
   float stackSize = height / stacks;
+  float halfHeight = height / 2.0f;
 
-  vec3 baseMiddle = vec3(0, 0, 0);
-  vec3 topMiddle = vec3(0, height, 0);
+  vec3 baseMiddle = vec3(0, -halfHeight, 0);
+  vec3 topMiddle = vec3(0, halfHeight, 0);
 
   // SIDE FACES
   for (int slice = 0; slice < slices; slice++) {
@@ -161,8 +162,8 @@ Model Cylinder(float radius, float height, int slices, int stacks) {
     float angle2 = (slice + 1) * sliceSize;
 
     for (int stack = 0; stack < stacks; stack++) {
-      float currentHeight = stack * stackSize;
-      float nextHeight = (stack + 1) * stackSize;
+      float currentHeight = stack * stackSize - halfHeight;
+      float nextHeight = (stack + 1) * stackSize - halfHeight;
 
       vec3 bottomLeft = polarToCartesian(radius, angle1, currentHeight);
       vec3 bottomRight = polarToCartesian(radius, angle2, currentHeight);
@@ -179,10 +180,10 @@ Model Cylinder(float radius, float height, int slices, int stacks) {
     float angle1 = slice * sliceSize;
     float angle2 = (slice + 1) * sliceSize;
 
-    vec3 baseBottomLeft = polarToCartesian(radius, angle1, 0);
-    vec3 baseBottomRight = polarToCartesian(radius, angle2, 0);
-    vec3 topBaseLeft = polarToCartesian(radius, angle1, height);
-    vec3 topBaseRight = polarToCartesian(radius, angle2, height);
+    vec3 baseBottomLeft = polarToCartesian(radius, angle1, -halfHeight);
+    vec3 baseBottomRight = polarToCartesian(radius, angle2, -halfHeight);
+    vec3 topBaseLeft = polarToCartesian(radius, angle1, halfHeight);
+    vec3 topBaseRight = polarToCartesian(radius, angle2, halfHeight);
 
     vertices.insert(vertices.end(),
                     {baseMiddle, baseBottomRight, baseBottomLeft});
