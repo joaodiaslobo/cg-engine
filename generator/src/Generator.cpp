@@ -17,7 +17,8 @@ vec3 polarToCartesian(float radius, float alpha, float y) {
 }
 
 vec3 sphericalToCartesian(float radius, float alpha, float beta) {
-  return vec3(radius * cos(beta) * sin(alpha), radius * sin(beta), radius * cos(beta) * cos(alpha));
+  return vec3(radius * cos(beta) * sin(alpha), radius * sin(beta),
+              radius * cos(beta) * cos(alpha));
 }
 
 Model Cone(float radius, float height, int slices, int stacks) {
@@ -58,7 +59,7 @@ Model Cone(float radius, float height, int slices, int stacks) {
   return {vertices};
 }
 
-Model Sphere(float radius, int slices, int stacks){
+Model Sphere(float radius, int slices, int stacks) {
   vector<vec3> vertices;
 
   float sliceSize = 2 * M_PI / slices;
@@ -66,10 +67,14 @@ Model Sphere(float radius, int slices, int stacks){
 
   for (int slice = 0; slice < slices; slice++) {
     for (int stack = 0; stack < stacks; stack++) {
-      vec3 bottomLeft = sphericalToCartesian(radius, slice * sliceSize, stack * stackSize - M_PI_2);
-      vec3 bottomRight = sphericalToCartesian(radius, (slice + 1) * sliceSize, stack * stackSize - M_PI_2);
-      vec3 topLeft = sphericalToCartesian(radius, slice * sliceSize, (stack + 1) * stackSize - M_PI_2);
-      vec3 topRight = sphericalToCartesian(radius, (slice + 1) * sliceSize, (stack + 1) * stackSize - M_PI_2);
+      vec3 bottomLeft = sphericalToCartesian(radius, slice * sliceSize,
+                                             stack * stackSize - M_PI_2);
+      vec3 bottomRight = sphericalToCartesian(radius, (slice + 1) * sliceSize,
+                                              stack * stackSize - M_PI_2);
+      vec3 topLeft = sphericalToCartesian(radius, slice * sliceSize,
+                                          (stack + 1) * stackSize - M_PI_2);
+      vec3 topRight = sphericalToCartesian(radius, (slice + 1) * sliceSize,
+                                           (stack + 1) * stackSize - M_PI_2);
 
       vertices.insert(vertices.end(), {topLeft, bottomLeft, bottomRight});
       vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
@@ -77,7 +82,7 @@ Model Sphere(float radius, int slices, int stacks){
   }
   return {vertices};
 }
-  
+
 Model Plane(float length, int divisions) {
   vector<vec3> vertices;
 

@@ -13,7 +13,7 @@ class Group {
   vector<Model> models;
 
  public:
-  Group(){};
+  Group() {};
   void render();
   void addChild(Group child) { children.push_back(child); }
   void addModel(Model model) { models.push_back(model); }

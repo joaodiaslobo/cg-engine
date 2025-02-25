@@ -16,7 +16,7 @@ class Model {
   vector<vec3> vertices;
 
  public:
-  Model(){};
+  Model() {};
   void addVertex(vec3 vertex);
   void setName(const string& name) { this->name = name; }
   void render();
