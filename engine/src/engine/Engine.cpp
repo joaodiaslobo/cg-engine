@@ -111,6 +111,7 @@ bool Engine::initializeFromFile(const string& filename) {
 
 void Engine::run() {
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
 
   while (!glfwWindowShouldClose(window.getGlfwWindow())) {
     glfwPollEvents();

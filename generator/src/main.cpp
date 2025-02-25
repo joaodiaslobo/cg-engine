@@ -12,7 +12,9 @@ void printUsage() {
       << "  generator sphere <radius> <slices> <stacks> <output_file>\n"
       << "  generator box <length> <divisions> <output_file>\n"
       << "  generator cone <radius> <height> <slices> <stacks> <output_file>\n"
-      << "  generator plane <length> <divisions> <output_file>\n";
+      << "  generator plane <length> <divisions> <output_file>\n"
+      << "  generator cylinder <radius> <height> <slices> <stacks> "
+         "<output_file>\n";
 }
 
 void handleSphere(const std::vector<std::string>& args) {
@@ -57,6 +59,20 @@ void handlePlane(const std::vector<std::string>& args) {
   generator::Export(model, args[3]);
 }
 
+void handleCylinder(const std::vector<std::string>& args) {
+  std::cout << "Generating cylinder with radius " << args[1] << ", height "
+            << args[2] << ", slices " << args[3] << ", stacks " << args[4]
+            << " | Output: " << args[5] << std::endl;
+
+  float radius = std::stof(args[1]);
+  float height = std::stof(args[2]);
+  int slices = std::stoi(args[3]);
+  int stacks = std::stoi(args[4]);
+
+  Model model = generator::Cylinder(radius, height, slices, stacks);
+  generator::Export(model, args[5]);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     std::cerr << "Error: No command provided.\n";
@@ -70,7 +86,8 @@ int main(int argc, char* argv[]) {
       commandMap = {{"sphere", {5, handleSphere}},
                     {"box", {4, handleBox}},
                     {"cone", {6, handleCone}},
-                    {"plane", {4, handlePlane}}};
+                    {"plane", {4, handlePlane}},
+                    {"cylinder", {6, handleCylinder}}};
 
   std::vector<std::string> args(argv + 1, argv + argc);
   std::string command = args[0];
