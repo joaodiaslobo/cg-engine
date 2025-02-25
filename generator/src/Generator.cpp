@@ -146,6 +146,51 @@ Model Box(float size, int divisions) {
   return Model{vertices};
 }
 
+Model Cylinder(float radius, float height, int slices, int stacks) {
+  vector<vec3> vertices;
+
+  float sliceSize = 2 * M_PI / slices;
+  float stackSize = height / stacks;
+
+  vec3 baseMiddle = vec3(0, 0, 0);
+  vec3 topMiddle = vec3(0, height, 0);
+
+  // SIDE FACES
+  for (int slice = 0; slice < slices; slice++) {
+    float angle1 = slice * sliceSize;
+    float angle2 = (slice + 1) * sliceSize;
+
+    for (int stack = 0; stack < stacks; stack++) {
+      float currentHeight = stack * stackSize;
+      float nextHeight = (stack + 1) * stackSize;
+
+      vec3 bottomLeft = polarToCartesian(radius, angle1, currentHeight);
+      vec3 bottomRight = polarToCartesian(radius, angle2, currentHeight);
+      vec3 topLeft = polarToCartesian(radius, angle1, nextHeight);
+      vec3 topRight = polarToCartesian(radius, angle2, nextHeight);
+
+      vertices.insert(vertices.end(), {bottomLeft, bottomRight, topLeft});
+      vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
+    }
+  }
+
+  // BASES
+  for (int slice = 0; slice < slices; slice++) {
+    float angle1 = slice * sliceSize;
+    float angle2 = (slice + 1) * sliceSize;
+
+    vec3 baseBottomLeft = polarToCartesian(radius, angle1, 0);
+    vec3 baseBottomRight = polarToCartesian(radius, angle2, 0);
+    vec3 topBaseLeft = polarToCartesian(radius, angle1, height);
+    vec3 topBaseRight = polarToCartesian(radius, angle2, height);
+
+    vertices.insert(vertices.end(),
+                    {baseMiddle, baseBottomRight, baseBottomLeft});
+    vertices.insert(vertices.end(), {topMiddle, topBaseLeft, topBaseRight});
+  }
+  return {vertices};
+}
+
 bool Export(const Model& model, const std::string& filename) {
   std::ofstream file(filename);
   if (!file.is_open()) {
