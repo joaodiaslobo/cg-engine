@@ -24,6 +24,12 @@ void handleSphere(const std::vector<std::string>& args) {
 void handleBox(const std::vector<std::string>& args) {
   std::cout << "Generating box with length " << args[1] << ", divisions "
             << args[2] << " | Output: " << args[3] << std::endl;
+
+  float size = std::stof(args[1]);
+  int divisions = std::stoi(args[2]);
+
+  Model model = generator::Box(size, divisions);
+  generator::Export(model, args[3]);
 }
 
 void handleCone(const std::vector<std::string>& args) {

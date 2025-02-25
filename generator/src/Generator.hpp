@@ -10,5 +10,6 @@ struct Model {
 
 namespace generator {
 Model Cone(float radius, float height, int slices, int stacks);
+Model Box(float size, int divisions);
 bool Export(const Model& model, const std::string& filename);
 }  // namespace generator
