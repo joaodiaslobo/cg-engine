@@ -16,6 +16,11 @@ vec3 polarToCartesian(float radius, float alpha, float y) {
   return vec3(radius * sin(alpha), y, radius * cos(alpha));
 }
 
+vec3 sphericalToCartesian(float radius, float alpha, float beta) {
+  return vec3(radius * cos(beta) * sin(alpha), radius * sin(beta),
+              radius * cos(beta) * cos(alpha));
+}
+
 Model Cone(float radius, float height, int slices, int stacks) {
   vector<vec3> vertices;
 
@@ -51,6 +56,30 @@ Model Cone(float radius, float height, int slices, int stacks) {
                     {baseMiddle, baseBottomRight, baseBottomLeft});
   }
 
+  return {vertices};
+}
+
+Model Sphere(float radius, int slices, int stacks) {
+  vector<vec3> vertices;
+
+  float sliceSize = 2 * M_PI / slices;
+  float stackSize = M_PI / stacks;
+
+  for (int slice = 0; slice < slices; slice++) {
+    for (int stack = 0; stack < stacks; stack++) {
+      vec3 bottomLeft = sphericalToCartesian(radius, slice * sliceSize,
+                                             stack * stackSize - M_PI_2);
+      vec3 bottomRight = sphericalToCartesian(radius, (slice + 1) * sliceSize,
+                                              stack * stackSize - M_PI_2);
+      vec3 topLeft = sphericalToCartesian(radius, slice * sliceSize,
+                                          (stack + 1) * stackSize - M_PI_2);
+      vec3 topRight = sphericalToCartesian(radius, (slice + 1) * sliceSize,
+                                           (stack + 1) * stackSize - M_PI_2);
+
+      vertices.insert(vertices.end(), {topLeft, bottomLeft, bottomRight});
+      vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
+    }
+  }
   return {vertices};
 }
 

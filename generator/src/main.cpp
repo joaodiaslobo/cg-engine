@@ -21,6 +21,13 @@ void handleSphere(const std::vector<std::string>& args) {
   std::cout << "Generating sphere with radius " << args[1] << ", slices "
             << args[2] << ", stacks " << args[3] << " | Output: " << args[4]
             << std::endl;
+
+  float radius = std::stof(args[1]);
+  int slices = std::stoi(args[2]);
+  int stacks = std::stoi(args[3]);
+
+  Model model = generator::Sphere(radius, slices, stacks);
+  generator::Export(model, args[4]);
 }
 
 void handleBox(const std::vector<std::string>& args) {
