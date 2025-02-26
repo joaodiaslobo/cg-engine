@@ -14,15 +14,17 @@
 #include "settings.hpp"
 
 class Engine {
+ private:
+  Window window;
+  Scene scene;
+  Camera camera;
  public:
   bool initialize();
   bool initializeFromFile(const string& filename);
   void run();
   void render();
   void setupProjectionAndView();
-
- private:
-  Window window;
-  Scene scene;
-  Camera camera;
+  Window* getWindow() { return &window; }
 };
+
+void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height);

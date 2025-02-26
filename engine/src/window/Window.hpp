@@ -20,7 +20,7 @@ class Window {
   static bool initialize(DisplaySettings* settings, const char* title);
   static void terminate();
 
-  static DisplaySettings* getSettings();
+  static void setWindowSize(unsigned int width, unsigned int height);
 
   static glm::vec2 size() { return glm::vec2(width, height); }
 

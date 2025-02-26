@@ -12,6 +12,9 @@ bool Engine::initialize() {
     return false;
   }
 
+  glfwSetWindowUserPointer(window.getGlfwWindow(), this);
+  glfwSetFramebufferSizeCallback(window.getGlfwWindow(), windowSizeUpdatedCallback);
+
   setupProjectionAndView();
 
   return true;
@@ -104,6 +107,9 @@ bool Engine::initializeFromFile(const string& filename) {
 
   scene.setRoot(initializeGroupFromXML(rootGroupElement));
 
+  glfwSetWindowUserPointer(window.getGlfwWindow(), this);
+  glfwSetFramebufferSizeCallback(window.getGlfwWindow(), windowSizeUpdatedCallback);
+
   setupProjectionAndView();
 
   return true;
@@ -127,8 +133,10 @@ void Engine::setupProjectionAndView() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
+  float aspectRatio = static_cast<float>(window.width) / static_cast<float>(window.height);
+
   glViewport(0, 0, window.width, window.height);
-  gluPerspective(camera.getFov(), window.width / window.height,
+  gluPerspective(camera.getFov(), aspectRatio,
                  camera.getNear(), camera.getFar());
 
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -171,4 +179,12 @@ void Engine::render() {
   scene.render();
 
   renderSceneAxis();
+}
+
+void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height) {
+  Engine *engine = static_cast<Engine *>(glfwGetWindowUserPointer(window));
+
+  engine->getWindow()->setWindowSize(width, height);
+
+  engine->setupProjectionAndView();
 }
