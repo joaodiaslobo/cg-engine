@@ -18,6 +18,7 @@ class Engine {
   Window window;
   Scene scene;
   Camera camera;
+
  public:
   bool initialize();
   bool initializeFromFile(const string& filename);
@@ -25,6 +26,12 @@ class Engine {
   void render();
   void setupProjectionAndView();
   Window* getWindow() { return &window; }
+  Camera* getCamera() { return &camera; }
 };
 
 void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height);
+
+void keyCallback(GLFWwindow* window, int key, int scancode, int action,
+                 int mods);
+
+void mouseCallback(GLFWwindow* window, double xpos, double ypos);

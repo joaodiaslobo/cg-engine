@@ -65,6 +65,8 @@ Model Sphere(float radius, int slices, int stacks) {
   float sliceSize = 2 * M_PI / slices;
   float stackSize = M_PI / stacks;
 
+  // VERTICES
+
   for (int slice = 0; slice < slices; slice++) {
     for (int stack = 0; stack < stacks; stack++) {
       vec3 bottomLeft = sphericalToCartesian(radius, slice * sliceSize,
@@ -89,9 +91,10 @@ Model Plane(float length, int divisions) {
   float divisionSize = length / divisions;
   float halfLength = length / 2.0f;
 
+  // VERTICES
+
   for (int x = 0; x < divisions; x++) {
     for (int z = 0; z < divisions; z++) {
-      // Offset x and z so that the plane is centered at the origin
       float xPos = (x * divisionSize) - halfLength;
       float zPos = (z * divisionSize) - halfLength;
       float xNext = ((x + 1) * divisionSize) - halfLength;
@@ -102,7 +105,6 @@ Model Plane(float length, int divisions) {
       vec3 topLeft = vec3(xPos, 0, zNext);
       vec3 topRight = vec3(xNext, 0, zNext);
 
-      // triangles
       vertices.insert(vertices.end(), {topLeft, bottomLeft, bottomRight});
       vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
 
@@ -118,6 +120,8 @@ Model Box(float size, int divisions) {
   float step = size / divisions;
   vector<vec3> vertices;
 
+  // VERTICES
+
   for (int i = 0; i < divisions; ++i) {
     for (int j = 0; j < divisions; ++j) {
       float v1 = -halfSize + i * step;
@@ -125,7 +129,6 @@ Model Box(float size, int divisions) {
       float v2 = v1 + step;
       float u2 = u1 + step;
 
-      // Face Frontal
       vertices.insert(vertices.end(),
                       {vec3(v1, u1, halfSize), vec3(v2, u1, halfSize),
                        vec3(v1, u2, halfSize)});
@@ -133,7 +136,6 @@ Model Box(float size, int divisions) {
                       {vec3(v1, u2, halfSize), vec3(v2, u1, halfSize),
                        vec3(v2, u2, halfSize)});
 
-      // Face Traseira
       vertices.insert(vertices.end(),
                       {vec3(v1, u1, -halfSize), vec3(v1, u2, -halfSize),
                        vec3(v2, u1, -halfSize)});
@@ -141,7 +143,6 @@ Model Box(float size, int divisions) {
                       {vec3(v1, u2, -halfSize), vec3(v2, u2, -halfSize),
                        vec3(v2, u1, -halfSize)});
 
-      // Face Esquerda
       vertices.insert(vertices.end(),
                       {vec3(-halfSize, v1, u1), vec3(-halfSize, v1, u2),
                        vec3(-halfSize, v2, u1)});
@@ -149,7 +150,6 @@ Model Box(float size, int divisions) {
                       {vec3(-halfSize, v1, u2), vec3(-halfSize, v2, u2),
                        vec3(-halfSize, v2, u1)});
 
-      // Face Direita
       vertices.insert(vertices.end(),
                       {vec3(halfSize, v1, u1), vec3(halfSize, v2, u1),
                        vec3(halfSize, v1, u2)});
@@ -157,7 +157,6 @@ Model Box(float size, int divisions) {
                       {vec3(halfSize, v1, u2), vec3(halfSize, v2, u1),
                        vec3(halfSize, v2, u2)});
 
-      // Face Superior
       vertices.insert(vertices.end(),
                       {vec3(v1, halfSize, u1), vec3(v1, halfSize, u2),
                        vec3(v2, halfSize, u1)});
@@ -165,7 +164,6 @@ Model Box(float size, int divisions) {
                       {vec3(v1, halfSize, u2), vec3(v2, halfSize, u2),
                        vec3(v2, halfSize, u1)});
 
-      // Face Inferior
       vertices.insert(vertices.end(),
                       {vec3(v1, -halfSize, u1), vec3(v2, -halfSize, u1),
                        vec3(v1, -halfSize, u2)});
