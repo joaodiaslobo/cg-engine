@@ -12,6 +12,12 @@ bool Engine::initialize() {
     return false;
   }
 
+  glfwSetWindowUserPointer(window.getGlfwWindow(), this);
+  glfwSetFramebufferSizeCallback(window.getGlfwWindow(),
+                                 windowSizeUpdatedCallback);
+  glfwSetKeyCallback(window.getGlfwWindow(), keyCallback);
+  glfwSetCursorPosCallback(window.getGlfwWindow(), mouseCallback);
+
   setupProjectionAndView();
 
   return true;
@@ -104,6 +110,12 @@ bool Engine::initializeFromFile(const string& filename) {
 
   scene.setRoot(initializeGroupFromXML(rootGroupElement));
 
+  glfwSetWindowUserPointer(window.getGlfwWindow(), this);
+  glfwSetFramebufferSizeCallback(window.getGlfwWindow(),
+                                 windowSizeUpdatedCallback);
+  glfwSetKeyCallback(window.getGlfwWindow(), keyCallback);
+  glfwSetCursorPosCallback(window.getGlfwWindow(), mouseCallback);
+
   setupProjectionAndView();
 
   return true;
@@ -113,9 +125,16 @@ void Engine::run() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
 
+  double lastTime = glfwGetTime();
+
   while (!glfwWindowShouldClose(window.getGlfwWindow())) {
+    double currentTime = glfwGetTime();
+    float deltaTime = static_cast<float>(currentTime - lastTime);
+    lastTime = currentTime;
+
     glfwPollEvents();
 
+    camera.update(deltaTime);
     render();
     glfwSwapBuffers(window.getGlfwWindow());
   }
@@ -127,9 +146,12 @@ void Engine::setupProjectionAndView() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
 
+  float aspectRatio =
+      static_cast<float>(window.width) / static_cast<float>(window.height);
+
   glViewport(0, 0, window.width, window.height);
-  gluPerspective(camera.getFov(), window.width / window.height,
-                 camera.getNear(), camera.getFar());
+  gluPerspective(camera.getFov(), aspectRatio, camera.getNear(),
+                 camera.getFar());
 
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -171,4 +193,42 @@ void Engine::render() {
   scene.render();
 
   renderSceneAxis();
+}
+
+void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height) {
+  Engine* engine = static_cast<Engine*>(glfwGetWindowUserPointer(window));
+
+  engine->getWindow()->setWindowSize(width, height);
+
+  engine->setupProjectionAndView();
+}
+
+void keyCallback(GLFWwindow* window, int key, int scancode, int action,
+                 int mods) {
+  Engine* engine = static_cast<Engine*>(glfwGetWindowUserPointer(window));
+
+  if (key == GLFW_KEY_T && action == GLFW_PRESS) {
+    CameraMode currentMode = engine->getCamera()->getMode();
+    if (currentMode == CameraMode::TURNTABLE) {
+      engine->getCamera()->setMode(CameraMode::STATIC);
+    } else {
+      engine->getCamera()->setMode(CameraMode::TURNTABLE);
+    }
+  }
+
+  if (key == GLFW_KEY_F && action == GLFW_PRESS) {
+    CameraMode currentMode = engine->getCamera()->getMode();
+    if (currentMode == CameraMode::FREECAM) {
+      engine->getCamera()->setMode(CameraMode::STATIC);
+    } else {
+      engine->getCamera()->setMode(CameraMode::FREECAM);
+    }
+  }
+
+  engine->getCamera()->processKeyboard(key, action);
+}
+
+void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
+  Engine* engine = static_cast<Engine*>(glfwGetWindowUserPointer(window));
+  engine->getCamera()->processMouseMovement(xpos, ypos);
 }

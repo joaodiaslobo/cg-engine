@@ -48,3 +48,8 @@ void Window::terminate() {
   glfwDestroyWindow(glfwWindow);
   glfwTerminate();
 }
+
+void Window::setWindowSize(unsigned int width, unsigned int height) {
+  Window::width = width;
+  Window::height = height;
+}
