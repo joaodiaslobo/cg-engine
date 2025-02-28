@@ -12,13 +12,9 @@ bool Engine::initialize() {
     return false;
   }
 
-  glfwSetWindowUserPointer(window.getGlfwWindow(), this);
-  glfwSetFramebufferSizeCallback(window.getGlfwWindow(),
-                                 windowSizeUpdatedCallback);
-  glfwSetKeyCallback(window.getGlfwWindow(), keyCallback);
-  glfwSetCursorPosCallback(window.getGlfwWindow(), mouseCallback);
+  configureGlfw(window);
 
-  setupProjectionAndView();
+  ui.initialize(&window);
 
   return true;
 }
@@ -110,15 +106,44 @@ bool Engine::initializeFromFile(const string& filename) {
 
   scene.setRoot(initializeGroupFromXML(rootGroupElement));
 
+  configureGlfw(window);
+
+  ui.initialize(&window);
+
+  setupProjectionAndView();
+
+  return true;
+}
+
+bool Engine::loadNewFile(const std::string& filename) {
+  logger.info("Loading new file: " + filename);
+
+  camera.setMode(CameraMode::STATIC);
+
+  ui.shutdown();
+
+  Window::terminate();
+
+  scene.clear();
+
+  if (!initializeFromFile(filename)) {
+    logger.error("Failed to load new file: " + filename);
+    return false;
+  }
+
+  logger.info("Successfully loaded new file: " + filename);
+
+  run();
+
+  return true;
+}
+
+void Engine::configureGlfw(Window& window) {
   glfwSetWindowUserPointer(window.getGlfwWindow(), this);
   glfwSetFramebufferSizeCallback(window.getGlfwWindow(),
                                  windowSizeUpdatedCallback);
   glfwSetKeyCallback(window.getGlfwWindow(), keyCallback);
   glfwSetCursorPosCallback(window.getGlfwWindow(), mouseCallback);
-
-  setupProjectionAndView();
-
-  return true;
 }
 
 void Engine::run() {
@@ -182,6 +207,8 @@ void renderSceneAxis() {
 }
 
 void Engine::render() {
+  ui.render();
+
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -193,6 +220,8 @@ void Engine::render() {
   scene.render();
 
   renderSceneAxis();
+
+  ui.postRender();
 }
 
 void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height) {
@@ -214,15 +243,15 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
     } else {
       engine->getCamera()->setMode(CameraMode::TURNTABLE);
     }
-  }
-
-  if (key == GLFW_KEY_F && action == GLFW_PRESS) {
+  } else if (key == GLFW_KEY_F && action == GLFW_PRESS) {
     CameraMode currentMode = engine->getCamera()->getMode();
     if (currentMode == CameraMode::FREECAM) {
       engine->getCamera()->setMode(CameraMode::STATIC);
     } else {
       engine->getCamera()->setMode(CameraMode::FREECAM);
     }
+  } else if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+    glfwSetWindowShouldClose(window, GLFW_TRUE);
   }
 
   engine->getCamera()->processKeyboard(key, action);

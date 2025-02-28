@@ -12,4 +12,5 @@ struct Scene {
  public:
   void render();
   void setRoot(Group root) { this->root = root; }
+  void clear();
 };

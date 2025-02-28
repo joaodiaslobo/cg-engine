@@ -8,6 +8,7 @@
 
 #include "../scene/Group.hpp"
 #include "../scene/Scene.hpp"
+#include "../ui/UI.hpp"
 #include "../window/Camera.hpp"
 #include "../window/Window.hpp"
 #include "debug/Logger.hpp"
@@ -18,10 +19,13 @@ class Engine {
   Window window;
   Scene scene;
   Camera camera;
+  UI ui;
 
  public:
   bool initialize();
   bool initializeFromFile(const string& filename);
+  bool Engine::loadNewFile(const string& filename);
+  void configureGlfw(Window& window);
   void run();
   void render();
   void setupProjectionAndView();
