@@ -220,7 +220,7 @@ void Engine::render() {
   scene.render();
 
   renderSceneAxis();
-
+  
   ui.postRender();
 }
 
