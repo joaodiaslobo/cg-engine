@@ -20,6 +20,7 @@ class Engine {
   Scene scene;
   Camera camera;
   UI ui;
+
  public:
   bool initialize();
   bool initializeFromFile(const string& filename);
