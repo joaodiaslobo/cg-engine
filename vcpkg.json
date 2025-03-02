@@ -3,6 +3,14 @@
     "glfw3",
     "opengl",
     "glm",
-    "tinyxml2"
+    "tinyxml2",
+    {
+      "name": "imgui",
+      "features": [
+        "glfw-binding",
+        "opengl3-binding"
+      ]
+    },
+    "tinyfiledialogs"
   ]
 }

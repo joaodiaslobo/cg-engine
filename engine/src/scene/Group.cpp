@@ -14,6 +14,11 @@ void Group::render() {
   }
 }
 
+void Group::clear() {
+  models.clear();
+  children.clear();
+}
+
 Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
   Group group;
 
