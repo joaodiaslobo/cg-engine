@@ -189,31 +189,19 @@ Model Cylinder(float radius, float height, int slices, int stacks) {
   for (int slice = 0; slice < slices; slice++) {
     float angle1 = slice * sliceSize;
     float angle2 = (slice + 1) * sliceSize;
+    float stackSize = height / stacks;
 
-    if (stacks == 0) {
-      // No stacks: Use a single quad per slice
-      vec3 bottomEdge = polarToCartesian(radius, angle1, -halfHeight);
-      vec3 bottomEdgeNext = polarToCartesian(radius, angle2, -halfHeight);
-      vec3 topEdge = polarToCartesian(radius, angle1, halfHeight);
-      vec3 topEdgeNext = polarToCartesian(radius, angle2, halfHeight);
+    for (int stack = 0; stack < stacks; stack++) {
+      float currentHeight = stack * stackSize - halfHeight;
+      float nextHeight = (stack + 1) * stackSize - halfHeight;
 
-      vertices.insert(vertices.end(), {bottomEdge, bottomEdgeNext, topEdge});
-      vertices.insert(vertices.end(), {topEdge, bottomEdgeNext, topEdgeNext});
-    } else {
-      // Regular case with stacks
-      float stackSize = height / stacks;
-      for (int stack = 0; stack < stacks; stack++) {
-        float currentHeight = stack * stackSize - halfHeight;
-        float nextHeight = (stack + 1) * stackSize - halfHeight;
+      vec3 bottomLeft = polarToCartesian(radius, angle1, currentHeight);
+      vec3 bottomRight = polarToCartesian(radius, angle2, currentHeight);
+      vec3 topLeft = polarToCartesian(radius, angle1, nextHeight);
+      vec3 topRight = polarToCartesian(radius, angle2, nextHeight);
 
-        vec3 bottomLeft = polarToCartesian(radius, angle1, currentHeight);
-        vec3 bottomRight = polarToCartesian(radius, angle2, currentHeight);
-        vec3 topLeft = polarToCartesian(radius, angle1, nextHeight);
-        vec3 topRight = polarToCartesian(radius, angle2, nextHeight);
-
-        vertices.insert(vertices.end(), {bottomLeft, bottomRight, topLeft});
-        vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
-      }
+      vertices.insert(vertices.end(), {bottomLeft, bottomRight, topLeft});
+      vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
     }
   }
 
@@ -231,6 +219,37 @@ Model Cylinder(float radius, float height, int slices, int stacks) {
     vertices.insert(vertices.end(), {topMiddle, topLeft, topRight});
   }
 
+  return {vertices};
+}
+
+Model Torus(float radius, float tubeRadius, int slices, int stacks) {
+  vector<vec3> vertices;
+
+  for (int stack = 0; stack < stacks; stack++) {
+    float theta1 = 2 * stack * M_PI / stacks;
+    float theta2 = 2 * (stack + 1) * M_PI / stacks;
+
+    for (int slice = 0; slice < slices; slice++) {
+      float phi1 = 2 * slice * M_PI / slices;
+      float phi2 = 2 * (slice + 1) * M_PI / slices;
+
+      vec3 topLeft = vec3((radius + tubeRadius * cos(phi1)) * cos(theta1),
+                          tubeRadius * sin(phi1),
+                          (radius + tubeRadius * cos(phi1)) * sin(theta1));
+      vec3 topRight = vec3((radius + tubeRadius * cos(phi1)) * cos(theta2),
+                           tubeRadius * sin(phi1),
+                           (radius + tubeRadius * cos(phi1)) * sin(theta2));
+      vec3 bottomLeft = vec3((radius + tubeRadius * cos(phi2)) * cos(theta1),
+                             tubeRadius * sin(phi2),
+                             (radius + tubeRadius * cos(phi2)) * sin(theta1));
+      vec3 bottomRight = vec3((radius + tubeRadius * cos(phi2)) * cos(theta2),
+                              tubeRadius * sin(phi2),
+                              (radius + tubeRadius * cos(phi2)) * sin(theta2));
+
+      vertices.insert(vertices.end(), {topLeft, bottomLeft, bottomRight});
+      vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
+    }
+  }
   return {vertices};
 }
 

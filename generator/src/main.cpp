@@ -14,6 +14,8 @@ void printUsage() {
       << "  generator cone <radius> <height> <slices> <stacks> <output_file>\n"
       << "  generator plane <length> <divisions> <output_file>\n"
       << "  generator cylinder <radius> <height> <slices> <stacks> "
+         "<output_file>\n"
+      << "  generator torus <radius> <tube_radius> <slices> <stacks> "
          "<output_file>\n";
 }
 
@@ -80,6 +82,20 @@ void handleCylinder(const std::vector<std::string>& args) {
   generator::Export(model, args[5]);
 }
 
+void handleTorus(const std::vector<std::string>& args) {
+  std::cout << "Generating torus with radius " << args[1] << ", tube radius "
+            << args[2] << ", slices " << args[3] << ", stacks " << args[4]
+            << " | Output: " << args[5] << std::endl;
+
+  float radius = std::stof(args[1]);
+  float tubeRadius = std::stof(args[2]);
+  int slices = std::stoi(args[3]);
+  int stacks = std::stoi(args[4]);
+
+  Model model = generator::Torus(radius, tubeRadius, slices, stacks);
+  generator::Export(model, args[5]);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     std::cerr << "Error: No command provided.\n";
@@ -90,11 +106,10 @@ int main(int argc, char* argv[]) {
   std::unordered_map<
       std::string,
       std::pair<int, std::function<void(const std::vector<std::string>&)>>>
-      commandMap = {{"sphere", {5, handleSphere}},
-                    {"box", {4, handleBox}},
-                    {"cone", {6, handleCone}},
-                    {"plane", {4, handlePlane}},
-                    {"cylinder", {6, handleCylinder}}};
+      commandMap = {
+          {"sphere", {5, handleSphere}},     {"box", {4, handleBox}},
+          {"cone", {6, handleCone}},         {"plane", {4, handlePlane}},
+          {"cylinder", {6, handleCylinder}}, {"torus", {6, handleTorus}}};
 
   std::vector<std::string> args(argv + 1, argv + argc);
   std::string command = args[0];
