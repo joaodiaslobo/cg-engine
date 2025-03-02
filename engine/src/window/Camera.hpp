@@ -43,6 +43,9 @@ class Camera {
         up(up) {}
   void setPosition(vec3 position);
   void setLookingAt(vec3 lookingAt);
+  void setFov(float fov);
+  void setNear(float near);
+  void setFar(float far);
   void setUp(vec3 up);
   void setMode(CameraMode newMode);
   void render();

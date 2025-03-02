@@ -9,6 +9,12 @@ void Camera::setPosition(glm::vec3 position) { this->position = position; }
 
 void Camera::setLookingAt(glm::vec3 lookingAt) { this->lookingAt = lookingAt; }
 
+void Camera::setFov(float fov) { this->fov = fov; }
+
+void Camera::setNear(float near) { this->near = near; }
+
+void Camera::setFar(float far) { this->far = far; }
+
 void Camera::setUp(glm::vec3 up) { this->up = up; }
 
 void Camera::setMode(CameraMode newMode) {

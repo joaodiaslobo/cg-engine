@@ -93,6 +93,17 @@ bool Engine::initializeFromFile(const string& filename) {
 
       camera.setUp(glm::vec3(x, y, z));
     }
+
+    if (cameraProjectionElement != nullptr) {
+      float fov, near, far;
+      cameraProjectionElement->QueryFloatAttribute("fov", &fov);
+      cameraProjectionElement->QueryFloatAttribute("near", &near);
+      cameraProjectionElement->QueryFloatAttribute("far", &far);
+
+      camera.setFov(fov);
+      camera.setNear(near);
+      camera.setFar(far);
+    }
   }
 
   // Scene

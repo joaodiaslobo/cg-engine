@@ -20,6 +20,3 @@ To run one of the applications:
 ```
 $ .\scripts\run.bat [engine|generator]
 ```
-
-### 🐧 Linux
-
