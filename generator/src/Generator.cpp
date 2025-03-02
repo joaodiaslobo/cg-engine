@@ -21,6 +21,16 @@ vec3 sphericalToCartesian(float radius, float alpha, float beta) {
               radius * cos(beta) * cos(alpha));
 }
 
+/**
+ * Generates a 3D model of a cone.
+ *
+ * @param radius The radius of the base of the cone.
+ * @param height The height of the cone.
+ * @param slices The number of slices (subdivisions around the cone's
+ * circumference).
+ * @param stacks The number of stacks (subdivisions along the cone's height).
+ * @return A Model object containing the vertices of the cone.
+ */
 Model Cone(float radius, float height, int slices, int stacks) {
   vector<vec3> vertices;
 
@@ -59,6 +69,14 @@ Model Cone(float radius, float height, int slices, int stacks) {
   return {vertices};
 }
 
+/**
+ * Generates a 3D model of a sphere.
+ *
+ * @param radius The radius of the sphere.
+ * @param slices The number of vertical slices (longitude lines) of the sphere.
+ * @param stacks The number of horizontal stacks (latitude lines) of the sphere.
+ * @return A Model object containing the vertices of the generated sphere.
+ */
 Model Sphere(float radius, int slices, int stacks) {
   vector<vec3> vertices;
 
@@ -85,6 +103,13 @@ Model Sphere(float radius, int slices, int stacks) {
   return {vertices};
 }
 
+/**
+ * Generates a 3D model of a plane.
+ *
+ * @param length The length of the plane.
+ * @param divisions The number of divisions along each axis.
+ * @return A Model object containing the vertices of the generated plane.
+ */
 Model Plane(float length, int divisions) {
   vector<vec3> vertices;
 
@@ -115,6 +140,13 @@ Model Plane(float length, int divisions) {
   return {vertices};
 }
 
+/**
+ * @brief Generates a 3D box model.
+ *
+ * @param size The size of the box along each axis.
+ * @param divisions The number of divisions along each axis.
+ * @return Model The generated 3D box model containing the vertices.
+ */
 Model Box(float size, int divisions) {
   float halfSize = size / 2.0f;
   float step = size / divisions;
@@ -176,6 +208,17 @@ Model Box(float size, int divisions) {
   return Model{vertices};
 }
 
+/**
+ * Generates a 3D model of a cylinder.
+ *
+ * @param radius The radius of the cylinder.
+ * @param height The height of the cylinder.
+ * @param slices The number of slices (subdivisions around the cylinder's
+ * circumference).
+ * @param stacks The number of stacks (subdivisions along the cylinder's
+ * height).
+ * @return A Model object containing the vertices of the cylinder.
+ */
 Model Cylinder(float radius, float height, int slices, int stacks) {
   vector<vec3> vertices;
 
@@ -222,6 +265,16 @@ Model Cylinder(float radius, float height, int slices, int stacks) {
   return {vertices};
 }
 
+/**
+ * Generates a 3D torus model.
+ *
+ * @param radius The radius from the center of the torus to the center of the
+ * tube.
+ * @param tubeRadius The radius of the tube.
+ * @param slices The number of subdivisions around the tube.
+ * @param stacks The number of subdivisions around the torus.
+ * @return A Model object containing the vertices of the torus.
+ */
 Model Torus(float radius, float tubeRadius, int slices, int stacks) {
   vector<vec3> vertices;
 
@@ -253,6 +306,14 @@ Model Torus(float radius, float tubeRadius, int slices, int stacks) {
   return {vertices};
 }
 
+/**
+ * @brief Generates an icosphere 3D model.
+ *
+ * @param radius The radius of the icosphere.
+ * @param subdivisions The number of subdivisions to perform on the icosahedron
+ * faces. Must be at least 1.
+ * @return A Model object containing the vertices of the generated icosphere.
+ */
 Model Icosphere(float radius, int subdivisions) {
   if (subdivisions < 1) {
     return {};
@@ -337,6 +398,18 @@ Model Icosphere(float radius, int subdivisions) {
   return {vertices};
 }
 
+/**
+ * @brief Exports the given model to a file.
+ *
+ * This function writes the vertices of the model to a file specified by the
+ * filename. Each vertex is written in the format "v x y z" where x, y, and z
+ * are the coordinates of the vertex.
+ *
+ * @param model The model to be exported.
+ * @param filename The name of the file to which the model will be exported.
+ * @return true if the file was successfully opened and written to, false
+ * otherwise.
+ */
 bool Export(const Model& model, const std::string& filename) {
   std::ofstream file(filename);
   if (!file.is_open()) {

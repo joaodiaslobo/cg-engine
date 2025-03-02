@@ -2,6 +2,15 @@
 
 static debug::Logger logger;
 
+/**
+ * @brief Initializes the engine.
+ *
+ * This function sets up the display settings, initializes the window with the
+ * specified settings, configures GLFW for the window, and initializes the UI
+ * system.
+ *
+ * @return true if the engine is successfully initialized, false otherwise.
+ */
 bool Engine::initialize() {
   DisplaySettings settings;
   settings.width = 800;
@@ -19,6 +28,16 @@ bool Engine::initialize() {
   return true;
 }
 
+/**
+ * @brief Initializes the engine from an XML file.
+ *
+ * This function loads and parses an XML file to initialize the engine's
+ * settings, including window display settings, camera settings, and scene
+ * graph.
+ *
+ * @param filename The path to the XML file to load.
+ * @return true if the initialization is successful, false otherwise.
+ */
 bool Engine::initializeFromFile(const string& filename) {
   tinyxml2::XMLDocument doc;
 
@@ -126,6 +145,13 @@ bool Engine::initializeFromFile(const string& filename) {
   return true;
 }
 
+/**
+ * @brief Loads a new file and initializes the engine with its contents.
+ *
+ * @param filename The path to the file to be loaded.
+ * @return true if the file was successfully loaded and initialized, false
+ * otherwise.
+ */
 bool Engine::loadNewFile(const std::string& filename) {
   logger.info("Loading new file: " + filename);
 
@@ -149,6 +175,14 @@ bool Engine::loadNewFile(const std::string& filename) {
   return true;
 }
 
+/**
+ * @brief Configures GLFW callbacks for the given window.
+ *
+ * This function sets up various GLFW callbacks for the provided window,
+ * including user pointer, framebuffer size, key input, and cursor position.
+ *
+ * @param window The window for which to configure GLFW callbacks.
+ */
 void Engine::configureGlfw(Window& window) {
   glfwSetWindowUserPointer(window.getGlfwWindow(), this);
   glfwSetFramebufferSizeCallback(window.getGlfwWindow(),
@@ -157,6 +191,15 @@ void Engine::configureGlfw(Window& window) {
   glfwSetCursorPosCallback(window.getGlfwWindow(), mouseCallback);
 }
 
+/**
+ * @brief Runs the main loop of the engine.
+ *
+ * This function initializes necessary OpenGL states and enters the main loop
+ * where it continuously updates the camera, renders the scene, and swaps the
+ * buffers until the window should close. It also handles polling of window
+ * events.
+ *
+ */
 void Engine::run() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
@@ -178,6 +221,15 @@ void Engine::run() {
   Window::terminate();
 }
 
+/**
+ * @brief Sets up the projection and view matrices for the rendering engine.
+ *
+ * This function configures the OpenGL projection and view matrices based on
+ * the current window dimensions and camera settings. It sets the projection
+ * matrix to a perspective projection using the camera's field of view, aspect
+ * ratio, near clipping plane, and far clipping plane.
+ *
+ */
 void Engine::setupProjectionAndView() {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
@@ -194,6 +246,17 @@ void Engine::setupProjectionAndView() {
   glMatrixMode(GL_MODELVIEW);
 }
 
+/**
+ * @brief Renders the coordinate axes in the scene.
+ *
+ * This function draws the x-axis, y-axis, and z-axis using OpenGL lines.
+ * Each axis is colored differently for easy identification:
+ * - x-axis: red
+ * - y-axis: green
+ * - z-axis: blue
+ *
+ * The axes extend from -1000 to 1000 units in their respective directions.
+ */
 void renderSceneAxis() {
   glBegin(GL_LINES);
 
@@ -217,6 +280,9 @@ void renderSceneAxis() {
   glEnd();
 }
 
+/**
+ * @brief Renders the entire scene including UI, camera, and scene objects.
+ */
 void Engine::render() {
   ui.render();
 
@@ -235,6 +301,16 @@ void Engine::render() {
   ui.postRender();
 }
 
+/**
+ * @brief Callback function to handle window size updates.
+ *
+ * This function is called whenever the window size is changed. It updates the
+ * window size in the engine and reconfigures the projection and view settings.
+ *
+ * @param window Pointer to the GLFW window that received the event.
+ * @param width New width of the window.
+ * @param height New height of the window.
+ */
 void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height) {
   Engine* engine = static_cast<Engine*>(glfwGetWindowUserPointer(window));
 
@@ -243,6 +319,28 @@ void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height) {
   engine->setupProjectionAndView();
 }
 
+/**
+ * @brief Callback function for handling key press events.
+ *
+ * This function is called whenever a key is pressed, released, or held down.
+ * It handles specific key events to change the camera mode or close the window.
+ *
+ * @param window The GLFW window that received the event.
+ * @param key The keyboard key that was pressed or released.
+ * @param scancode The system-specific scancode of the key.
+ * @param action The action (GLFW_PRESS, GLFW_RELEASE, or GLFW_REPEAT).
+ * @param mods Bit field describing which modifier keys were held down.
+ *
+ * The function performs the following actions based on the key and action:
+ * - If the 'T' key is pressed, it toggles the camera mode between TURNTABLE and
+ * STATIC.
+ * - If the 'F' key is pressed, it toggles the camera mode between FREECAM and
+ * STATIC.
+ * - If the 'ESCAPE' key is pressed, it sets the window to close.
+ *
+ * Additionally, it calls the processKeyboard method of the camera to handle
+ * other key events.
+ */
 void keyCallback(GLFWwindow* window, int key, int scancode, int action,
                  int mods) {
   Engine* engine = static_cast<Engine*>(glfwGetWindowUserPointer(window));
@@ -268,6 +366,17 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
   engine->getCamera()->processKeyboard(key, action);
 }
 
+/**
+ * @brief Callback function to handle mouse movement events.
+ *
+ * This function is called whenever the mouse is moved within the GLFW window.
+ * It retrieves the Engine instance associated with the window and delegates
+ * the mouse movement processing to the camera.
+ *
+ * @param window Pointer to the GLFW window that received the event.
+ * @param xpos The new x-coordinate of the cursor.
+ * @param ypos The new y-coordinate of the cursor.
+ */
 void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
   Engine* engine = static_cast<Engine*>(glfwGetWindowUserPointer(window));
   engine->getCamera()->processMouseMovement(xpos, ypos);

@@ -6,6 +6,15 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+/**
+ * @brief Initializes the UI system with the given window.
+ *
+ * This function sets up the Dear ImGui context, initializes the ImGui
+ * implementation for GLFW and OpenGL, and configures the UI style and font
+ * scale.
+ *
+ * @param window Pointer to the Window object to be used for the UI.
+ */
 void UI::initialize(Window* window) {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -18,6 +27,9 @@ void UI::initialize(Window* window) {
   io->FontGlobalScale = 1.5f;
 }
 
+/**
+ * @brief Renders the UI using ImGui.
+ */
 void UI::render() {
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
@@ -50,10 +62,16 @@ void UI::render() {
   ImGui::Render();
 }
 
+/**
+ * @brief Renders the ImGui draw data using OpenGL.
+ */
 void UI::postRender() {
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
+/**
+ * @brief Shuts down the UI system.
+ */
 void UI::shutdown() {
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();

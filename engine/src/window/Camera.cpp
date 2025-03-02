@@ -28,6 +28,35 @@ void Camera::setMode(CameraMode newMode) {
   }
 }
 
+/**
+ * @brief Updates the camera's position and orientation based on the current
+ * mode and input.
+ *
+ * @param deltaTime The time elapsed since the last update, used to ensure
+ * smooth movement.
+ *
+ * This function handles two camera modes:
+ * - TURNTABLE: Rotates the camera around a fixed point (lookingAt) in a
+ * circular path.
+ * - FREECAM: Allows free movement in the scene based on user input.
+ *
+ * In TURNTABLE mode:
+ * - The camera rotates around the lookingAt point at a constant speed.
+ *
+ * In FREECAM mode:
+ * - The camera moves forward, backward, left, right, up, or down based on user
+ * input.
+ * - The movement speed is scaled by deltaTime to ensure consistent movement
+ * regardless of frame rate.
+ *
+ * Controls for FREECAM mode:
+ * - W: Move forward
+ * - S: Move backward
+ * - A: Move left
+ * - D: Move right
+ * - SPACE: Move up
+ * - LEFT_SHIFT: Move down
+ */
 void Camera::update(float deltaTime) {
   if (mode == CameraMode::TURNTABLE) {
     turntableAngle += deltaTime * 30.0f;
@@ -49,6 +78,16 @@ void Camera::update(float deltaTime) {
   }
 }
 
+/**
+ * @brief Processes mouse movement input to adjust the camera's orientation.
+ *
+ * This function updates the camera's yaw and pitch based on the mouse movement
+ * input. It ensures that the pitch is clamped between -89 and 89 degrees.
+ * The function only processes input if the camera mode is set to FREECAM.
+ *
+ * @param xpos The current x position of the mouse.
+ * @param ypos The current y position of the mouse.
+ */
 void Camera::processMouseMovement(double xpos, double ypos) {
   if (mode != CameraMode::FREECAM) return;
 
