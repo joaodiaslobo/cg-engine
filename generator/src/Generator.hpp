@@ -15,5 +15,6 @@ Model Plane(float length, int divisions);
 Model Box(float size, int divisions);
 Model Cylinder(float radius, float height, int slices, int stacks);
 Model Torus(float radius, float tubeRadius, int slices, int stacks);
+Model Icosphere(float radius, int subdivisions);
 bool Export(const Model& model, const std::string& filename);
 }  // namespace generator

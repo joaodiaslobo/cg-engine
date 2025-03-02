@@ -253,6 +253,90 @@ Model Torus(float radius, float tubeRadius, int slices, int stacks) {
   return {vertices};
 }
 
+Model Icosphere(float radius, int subdivisions) {
+  if (subdivisions < 1) {
+    return {};
+  }
+
+  vector<vec3> vertices;
+
+  float t = (1.0f + sqrt(5.0f)) / 2.0f;
+
+  vector<vec3> icosahedronVertices = {
+      glm::normalize(vec3(-1, t, 0)),  glm::normalize(vec3(1, t, 0)),
+      glm::normalize(vec3(-1, -t, 0)), glm::normalize(vec3(1, -t, 0)),
+      glm::normalize(vec3(0, -1, t)),  glm::normalize(vec3(0, 1, t)),
+      glm::normalize(vec3(0, -1, -t)), glm::normalize(vec3(0, 1, -t)),
+      glm::normalize(vec3(t, 0, -1)),  glm::normalize(vec3(t, 0, 1)),
+      glm::normalize(vec3(-t, 0, -1)), glm::normalize(vec3(-t, 0, 1))};
+
+  vector<vec3> icosahedronFaces = {
+      vec3(0, 11, 5),  vec3(0, 5, 1),  vec3(0, 1, 7),  vec3(0, 7, 10),
+      vec3(0, 10, 11), vec3(1, 5, 9),  vec3(5, 11, 4), vec3(11, 10, 2),
+      vec3(10, 7, 6),  vec3(7, 1, 8),  vec3(3, 9, 4),  vec3(3, 4, 2),
+      vec3(3, 2, 6),   vec3(3, 6, 8),  vec3(3, 8, 9),  vec3(4, 9, 5),
+      vec3(2, 4, 11),  vec3(6, 2, 10), vec3(8, 6, 7),  vec3(9, 8, 1)};
+
+  if (subdivisions != 1) {
+    for (int i = 0; i < subdivisions - 1; i++) {
+      vector<vec3> newVertices;
+      vector<vec3> newFaces;
+
+      for (const auto& face : icosahedronFaces) {
+        vec3 a = icosahedronVertices[face.x];
+        vec3 b = icosahedronVertices[face.y];
+        vec3 c = icosahedronVertices[face.z];
+
+        vec3 ab = glm::normalize((a + b) / 2.0f);
+        vec3 bc = glm::normalize((b + c) / 2.0f);
+        vec3 ca = glm::normalize((c + a) / 2.0f);
+
+        int indexA = newVertices.size();
+        newVertices.push_back(a);
+        int indexB = newVertices.size();
+        newVertices.push_back(b);
+        int indexC = newVertices.size();
+        newVertices.push_back(c);
+        int indexAB = newVertices.size();
+        newVertices.push_back(ab);
+        int indexBC = newVertices.size();
+        newVertices.push_back(bc);
+        int indexCA = newVertices.size();
+        newVertices.push_back(ca);
+
+        newFaces.push_back(vec3(indexA, indexAB, indexCA));
+        newFaces.push_back(vec3(indexAB, indexB, indexBC));
+        newFaces.push_back(vec3(indexBC, indexC, indexCA));
+        newFaces.push_back(vec3(indexAB, indexBC, indexCA));
+      }
+
+      icosahedronVertices = newVertices;
+      icosahedronFaces = newFaces;
+    }
+
+  } else {
+    vector<vec3> newVertices;
+
+    for (const auto& face : icosahedronFaces) {
+      vec3 a = icosahedronVertices[face.x];
+      vec3 b = icosahedronVertices[face.y];
+      vec3 c = icosahedronVertices[face.z];
+
+      vertices.push_back(a * radius);
+      vertices.push_back(b * radius);
+      vertices.push_back(c * radius);
+    }
+
+    icosahedronVertices = newVertices;
+  }
+
+  for (const auto& vertex : icosahedronVertices) {
+    vertices.push_back(vertex * radius);
+  }
+
+  return {vertices};
+}
+
 bool Export(const Model& model, const std::string& filename) {
   std::ofstream file(filename);
   if (!file.is_open()) {
