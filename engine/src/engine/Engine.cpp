@@ -218,6 +218,7 @@ void Engine::run() {
     glfwSwapBuffers(window.getGlfwWindow());
   }
 
+  ui.terminate();
   Window::terminate();
 }
 
@@ -359,6 +360,8 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
     } else {
       engine->getCamera()->setMode(CameraMode::FREECAM);
     }
+  } else if (key == GLFW_KEY_U && action == GLFW_PRESS) {
+    engine->getUI()->toggleUI();
   } else if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
   }

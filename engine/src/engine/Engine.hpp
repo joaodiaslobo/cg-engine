@@ -31,6 +31,8 @@ class Engine {
   void setupProjectionAndView();
   Window* getWindow() { return &window; }
   Camera* getCamera() { return &camera; }
+  Scene* getScene() { return &scene; }
+  UI* getUI() { return &ui; }
 };
 
 void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height);

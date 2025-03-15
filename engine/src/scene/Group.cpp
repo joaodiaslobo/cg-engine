@@ -57,5 +57,12 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
       modelElement = modelElement->NextSiblingElement("model");
     }
   }
+
+  tinyxml2::XMLElement* groupElement = element->FirstChildElement("group");
+  while (groupElement != nullptr) {
+    group.addChild(initializeGroupFromXML(groupElement));
+    groupElement = groupElement->NextSiblingElement("group");
+  }
+
   return group;
 }
