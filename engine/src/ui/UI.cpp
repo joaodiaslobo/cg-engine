@@ -140,7 +140,9 @@ bool SceneTreeNode(const char* label, NodeType type, bool hasChildren) {
   ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x,
                         pos.y + g.FontSize));
 
-  bool opened = ImGui::TreeNodeUpdateNextOpen(id, ImGuiTreeNodeFlags_None);
+  int* stored_open =
+      window->DC.StateStorage->GetIntRef(id, 1);  // Default to 1 (open)
+  bool opened = (*stored_open != 0);
   bool hovered, held;
 
   if (ImGui::ButtonBehavior(bb, id, &hovered, &held,
@@ -159,12 +161,9 @@ bool SceneTreeNode(const char* label, NodeType type, bool hasChildren) {
                          ? ICON_FA_CAMERA
                          : (opened ? ICON_FA_FOLDER_OPEN : ICON_FA_FOLDER);
 
-  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
-                      ImVec2(4.0f, 0.0f));
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding,
-                      ImVec2(4.0f, 0.0f));
-  ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing,
-                      10.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 0.0f));
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 0.0f));
+  ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 10.0f);
 
   ImGui::Text("%s  %s", icon, label);
 
