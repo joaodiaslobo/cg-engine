@@ -1,20 +1,46 @@
 #include "UI.hpp"
 
+#include <imgui_internal.h>
 #include <tinyfiledialogs/tinyfiledialogs.h>
 
 #include "../engine/Engine.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-/**
- * @brief Initializes the UI system with the given window.
- *
- * This function sets up the Dear ImGui context, initializes the ImGui
- * implementation for GLFW and OpenGL, and configures the UI style and font
- * scale.
- *
- * @param window Pointer to the Window object to be used for the UI.
- */
+void LoadMainFont(ImGuiIO& io) {
+  ImFontConfig config;
+  config.PixelSnapH = true;
+  io.Fonts->AddFontFromFileTTF("engine/assets/fonts/robotomono.ttf", 16.0f);
+}
+
+void LoadIconFont(ImGuiIO& io) {
+  static const ImWchar icon_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
+  ImFontConfig config;
+  config.MergeMode = true;
+  config.PixelSnapH = true;
+
+  io.Fonts->AddFontFromFileTTF("engine/assets/fonts/fontawesome.otf", 16.0f,
+                               &config, icon_ranges);
+}
+
+void DrawGroupTree(const Group& group, const std::string& name, NodeType type) {
+  if (SceneTreeNode(name.c_str(), type, true)) {
+    if (type == NodeType::WORLD) {
+      // If this is the world node, add the camera
+      SceneTreeNode("Camera", NodeType::CAMERA, false);
+    }
+
+    for (auto& child : group.getChildren()) {
+      DrawGroupTree(child, "Group", NodeType::GROUP);
+    }
+
+    for (auto& model : group.getModels()) {
+      SceneTreeNode(model.getName().c_str(), NodeType::MODEL, false);
+    }
+    ImGui::TreePop();
+  }
+}
+
 void UI::initialize(Window* window) {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -23,14 +49,30 @@ void UI::initialize(Window* window) {
   ImGui::StyleColorsDark();
   ImGui_ImplGlfw_InitForOpenGL(window->getGlfwWindow(), true);
   ImGui_ImplOpenGL3_Init("#version 130");
+  LoadMainFont(*io);
+  LoadIconFont(*io);
   this->window = window;
   io->FontGlobalScale = 1.5f;
+  io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 }
 
-/**
- * @brief Renders the UI using ImGui.
- */
+void UI::terminate() {
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+}
+
+void UI::toggleUI() { enabled = !enabled; }
+
 void UI::render() {
+  if (!enabled) {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    ImGui::Render();
+    return;
+  }
+
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
@@ -52,28 +94,87 @@ void UI::render() {
     ImGui::EndMainMenuBar();
   }
 
-  ImGui::SetNextWindowPos(ImVec2(10, 40), ImGuiCond_Always);
+  ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(),
+                               ImGuiDockNodeFlags_PassthruCentralNode);
+
+  ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x - 30,
+                                 ImGui::GetIO().DisplaySize.y - 30),
+                          ImGuiCond_Always, ImVec2(1.0f, 1.0f));
   ImGui::Begin(
       "Performance", nullptr,
       ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize);
   ImGui::Text("FPS: %.1f", io->Framerate);
   ImGui::End();
 
+  ImGui::Begin("Inspector");
+  Engine* engine =
+      static_cast<Engine*>(glfwGetWindowUserPointer(window->getGlfwWindow()));
+  if (engine) {
+    Scene* scene = engine->getScene();
+    if (scene) {
+      DrawGroupTree(scene->getRoot(), "World", NodeType::WORLD);
+    }
+  }
+  ImGui::End();
+
   ImGui::Render();
 }
 
-/**
- * @brief Renders the ImGui draw data using OpenGL.
- */
 void UI::postRender() {
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-/**
- * @brief Shuts down the UI system.
- */
 void UI::shutdown() {
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
+}
+
+bool SceneTreeNode(const char* label, NodeType type, bool hasChildren) {
+  ImGuiContext& g = *ImGui::GetCurrentContext();
+  ImGuiWindow* window = g.CurrentWindow;
+
+  ImGuiID id = window->GetID(label);
+  ImVec2 pos = window->DC.CursorPos;
+
+  ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x,
+                        pos.y + g.FontSize));
+
+  int* stored_open =
+      window->DC.StateStorage->GetIntRef(id, 1);  // Default to 1 (open)
+  bool opened = (*stored_open != 0);
+  bool hovered, held;
+
+  if (ImGui::ButtonBehavior(bb, id, &hovered, &held,
+                            ImGuiButtonFlags_PressedOnClick))
+    window->DC.StateStorage->SetInt(id, opened ? 0 : 1);
+
+  if (hovered || held)
+    window->DrawList->AddRectFilled(
+        bb.Min, bb.Max,
+        ImGui::GetColorU32(held ? ImGuiCol_HeaderActive
+                                : ImGuiCol_HeaderHovered));
+
+  const char* icon = (type == NodeType::WORLD)   ? ICON_FA_WORLD
+                     : (type == NodeType::MODEL) ? ICON_FA_CUBE
+                     : (type == NodeType::CAMERA)
+                         ? ICON_FA_CAMERA
+                         : (opened ? ICON_FA_FOLDER_OPEN : ICON_FA_FOLDER);
+
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 0.0f));
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 0.0f));
+  ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 10.0f);
+
+  ImGui::Text("%s  %s", icon, label);
+
+  ImGui::ItemSize(bb, 0.0f);
+  ImGui::ItemAdd(bb, id);
+
+  ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 9.0f);
+
+  ImGui::PopStyleVar(3);
+
+  if (opened && hasChildren) ImGui::TreePush(label);
+
+  return opened;
 }

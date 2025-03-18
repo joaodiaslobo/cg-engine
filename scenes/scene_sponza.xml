@@ -7,8 +7,8 @@
         <projection fov="60" near="1" far="100" /> 
     </camera>
 	<group> 
-  		<models> 
+		<models> 
 			<model file="models/sponza.obj" /> 
- 		</models>
+		</models>
  	</group>
 </world>

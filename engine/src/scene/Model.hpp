@@ -20,6 +20,7 @@ class Model {
   void addVertex(vec3 vertex);
   void setName(const string& name) { this->name = name; }
   void render();
+  const string& getName() const { return name; }
 };
 
 optional<Model> loadModel(const string& filename);
