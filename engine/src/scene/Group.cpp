@@ -1,6 +1,9 @@
 #include "Group.hpp"
 
 #include "debug/Logger.hpp"
+#include "math/Rotate.hpp"
+#include "math/Scale.hpp"
+#include "math/Translate.hpp"
 
 static debug::Logger logger;
 
@@ -24,6 +27,7 @@ void Group::render() {
 void Group::clear() {
   models.clear();
   children.clear();
+  transformations.clear();
 }
 
 /**
@@ -42,6 +46,40 @@ void Group::clear() {
 Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
   Group group;
 
+  // Process transformations in order
+  tinyxml2::XMLElement* transformElement =
+      element->FirstChildElement("transform");
+  if (transformElement != nullptr) {
+    tinyxml2::XMLElement* transformation =
+        transformElement->FirstChildElement();
+    while (transformation != nullptr) {
+      std::string tag = transformation->Value();
+
+      if (tag == "translate") {
+        float x = transformation->FloatAttribute("x");
+        float y = transformation->FloatAttribute("y");
+        float z = transformation->FloatAttribute("z");
+        group.addTransformation(Translate(x, y, z));
+      } else if (tag == "scale") {
+        float x = transformation->FloatAttribute("x");
+        float y = transformation->FloatAttribute("y");
+        float z = transformation->FloatAttribute("z");
+        group.addTransformation(Scale(x, y, z));
+      } else if (tag == "rotate") {
+        float angle = transformation->FloatAttribute("angle");
+        float x = transformation->FloatAttribute("x");
+        float y = transformation->FloatAttribute("y");
+        float z = transformation->FloatAttribute("z");
+        group.addTransformation(Rotate(angle, x, y, z));
+      }
+
+      transformation =
+          transformation
+              ->NextSiblingElement();  // Move to the next transformation
+    }
+  }
+
+  // Process models
   tinyxml2::XMLElement* modelsElement = element->FirstChildElement("models");
   if (modelsElement != nullptr) {
     tinyxml2::XMLElement* modelElement =
@@ -58,6 +96,7 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
     }
   }
 
+  // Process child groups
   tinyxml2::XMLElement* groupElement = element->FirstChildElement("group");
   while (groupElement != nullptr) {
     group.addChild(initializeGroupFromXML(groupElement));
