@@ -1,6 +1,8 @@
 #pragma once
+#include <GLFW/glfw3.h>
 #include <tinyxml2.h>
 
+#include <glm/gtc/type_ptr.hpp>
 #include <memory>
 #include <vector>
 
@@ -14,15 +16,20 @@ class Group {
  private:
   vector<Group> children;
   vector<Model> models;
-  vector<Transformation> transformations;
+  vector<std::unique_ptr<Transformation>> transformations;
 
  public:
-  Group(){};
+  Group() = default;
+  Group(const Group&) = delete;
+  Group& operator=(const Group&) = delete;
+  Group(Group&&) = default;
+  Group& operator=(Group&&) = default;
+
   void render();
-  void addChild(Group child) { children.push_back(child); }
-  void addModel(Model model) { models.push_back(model); }
-  void addTransformation(const Transformation& transformation) {
-    transformations.push_back(transformation);
+  void addChild(Group child) { children.push_back(std::move(child)); }
+  void addModel(Model model) { models.push_back(std::move(model)); }
+  void addTransformation(std::unique_ptr<Transformation> transformation) {
+    transformations.push_back(std::move(transformation));
   }
   void clear();
   const vector<Group>& getChildren() const { return children; }
@@ -30,3 +37,5 @@ class Group {
 };
 
 Group initializeGroupFromXML(tinyxml2::XMLElement* element);
+void applyTransformations(
+    const std::vector<std::unique_ptr<Transformation>>& transformations);

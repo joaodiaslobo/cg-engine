@@ -15,6 +15,10 @@ static debug::Logger logger;
  * their render function recursively.
  */
 void Group::render() {
+  glPushMatrix();
+
+  applyTransformations(transformations);
+
   for (Model& model : models) {
     model.render();
   }
@@ -22,6 +26,8 @@ void Group::render() {
   for (Group& group : children) {
     group.render();
   }
+
+  glPopMatrix();
 }
 
 void Group::clear() {
@@ -59,23 +65,23 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
         float x = transformation->FloatAttribute("x");
         float y = transformation->FloatAttribute("y");
         float z = transformation->FloatAttribute("z");
-        group.addTransformation(Translate(x, y, z));
+        group.addTransformation(std::make_unique<Translate>(x, y, z));
       } else if (tag == "scale") {
         float x = transformation->FloatAttribute("x");
         float y = transformation->FloatAttribute("y");
         float z = transformation->FloatAttribute("z");
-        group.addTransformation(Scale(x, y, z));
+        group.addTransformation(std::make_unique<Scale>(x, y, z));
       } else if (tag == "rotate") {
         float angle = transformation->FloatAttribute("angle");
         float x = transformation->FloatAttribute("x");
         float y = transformation->FloatAttribute("y");
         float z = transformation->FloatAttribute("z");
-        group.addTransformation(Rotate(angle, x, y, z));
+        group.addTransformation(std::make_unique<Rotate>(angle, x, y, z));
       }
 
       transformation =
           transformation
-              ->NextSiblingElement();  // Move to the next transformation
+              ->NextSiblingElement();
     }
   }
 
@@ -104,4 +110,26 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
   }
 
   return group;
+}
+
+/*
+  * @brief Applies a list of transformations to the current model matrix.
+  *
+  * This function applies a list of transformations to the current model matrix
+  * using OpenGL's glMultMatrixf function. The transformations are applied in
+  * the order they are provided in the list.
+  *
+  * @param transformations A vector of unique pointers to Transformation objects
+  *                        that represent the transformations to apply.
+  */
+void applyTransformations(
+    const std::vector<std::unique_ptr<Transformation>>& transformations) {
+  glm::mat4 modelMatrix = glm::mat4(1.0f);
+
+  for (const std::unique_ptr<Transformation>& transformation :
+       transformations) {
+    modelMatrix = transformation->apply(modelMatrix);
+  }
+
+  glMultMatrixf(glm::value_ptr(modelMatrix));
 }
