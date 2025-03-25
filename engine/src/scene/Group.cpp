@@ -79,9 +79,7 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
         group.addTransformation(std::make_unique<Rotate>(angle, x, y, z));
       }
 
-      transformation =
-          transformation
-              ->NextSiblingElement();
+      transformation = transformation->NextSiblingElement();
     }
   }
 
@@ -113,15 +111,15 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
 }
 
 /*
-  * @brief Applies a list of transformations to the current model matrix.
-  *
-  * This function applies a list of transformations to the current model matrix
-  * using OpenGL's glMultMatrixf function. The transformations are applied in
-  * the order they are provided in the list.
-  *
-  * @param transformations A vector of unique pointers to Transformation objects
-  *                        that represent the transformations to apply.
-  */
+ * @brief Applies a list of transformations to the current model matrix.
+ *
+ * This function applies a list of transformations to the current model matrix
+ * using OpenGL's glMultMatrixf function. The transformations are applied in
+ * the order they are provided in the list.
+ *
+ * @param transformations A vector of unique pointers to Transformation objects
+ *                        that represent the transformations to apply.
+ */
 void applyTransformations(
     const std::vector<std::unique_ptr<Transformation>>& transformations) {
   glm::mat4 modelMatrix = glm::mat4(1.0f);
