@@ -14,6 +14,7 @@ using std::vector;
 
 class Group {
  private:
+  string name;
   vector<Group> children;
   vector<Model> models;
   vector<std::unique_ptr<Transformation>> transformations;
@@ -26,6 +27,8 @@ class Group {
   Group& operator=(Group&&) = default;
 
   void render();
+  void setName(string name) { this->name = name; }
+  string getName() const { return name; }
   void addChild(Group child) { children.push_back(std::move(child)); }
   void addModel(Model model) { models.push_back(std::move(model)); }
   void addTransformation(std::unique_ptr<Transformation> transformation) {

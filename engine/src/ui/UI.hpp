@@ -36,4 +36,5 @@ class UI {
 
 void LoadMainFont(ImGuiIO& io);
 void LoadIconFont(ImGuiIO& io);
-bool SceneTreeNode(const char* label, NodeType type, bool hasChildren);
+bool SceneTreeNode(const char* label, NodeType type, bool hasChildren,
+                   bool startOpen);

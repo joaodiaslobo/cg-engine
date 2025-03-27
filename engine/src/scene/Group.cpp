@@ -50,7 +50,20 @@ void Group::clear() {
  * element.
  */
 Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
+  static int groupCounter = -1;
   Group group;
+
+  const char* name = element->Attribute("name");
+  if (name != nullptr) {
+    group.setName(name);
+  } else {
+    if (groupCounter <= 0) {
+      group.setName("Group");
+      groupCounter++;
+    } else {
+      group.setName("Group (" + std::to_string(groupCounter++) + ")");
+    }
+  }
 
   // Process transformations in order
   tinyxml2::XMLElement* transformElement =
