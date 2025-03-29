@@ -24,18 +24,18 @@ void LoadIconFont(ImGuiIO& io) {
 }
 
 void DrawGroupTree(const Group& group, const std::string& name, NodeType type) {
-  if (SceneTreeNode(name.c_str(), type, true)) {
+  if (SceneTreeNode(name.c_str(), type, true, type == NodeType::WORLD)) {
     if (type == NodeType::WORLD) {
       // If this is the world node, add the camera
-      SceneTreeNode("Camera", NodeType::CAMERA, false);
+      SceneTreeNode("Camera", NodeType::CAMERA, false, false);
     }
 
     for (auto& child : group.getChildren()) {
-      DrawGroupTree(child, "Group", NodeType::GROUP);
+      DrawGroupTree(child, child.getName(), NodeType::GROUP);
     }
 
     for (auto& model : group.getModels()) {
-      SceneTreeNode(model.getName().c_str(), NodeType::MODEL, false);
+      SceneTreeNode(model.getName().c_str(), NodeType::MODEL, false, false);
     }
     ImGui::TreePop();
   }
@@ -130,7 +130,8 @@ void UI::shutdown() {
   ImGui::DestroyContext();
 }
 
-bool SceneTreeNode(const char* label, NodeType type, bool hasChildren) {
+bool SceneTreeNode(const char* label, NodeType type, bool hasChildren,
+                   bool startOpen) {
   ImGuiContext& g = *ImGui::GetCurrentContext();
   ImGuiWindow* window = g.CurrentWindow;
 
@@ -140,8 +141,7 @@ bool SceneTreeNode(const char* label, NodeType type, bool hasChildren) {
   ImRect bb(pos, ImVec2(pos.x + ImGui::GetContentRegionAvail().x,
                         pos.y + g.FontSize));
 
-  int* stored_open =
-      window->DC.StateStorage->GetIntRef(id, 1);  // Default to 1 (open)
+  int* stored_open = window->DC.StateStorage->GetIntRef(id, startOpen ? 1 : 0);
   bool opened = (*stored_open != 0);
   bool hovered, held;
 
