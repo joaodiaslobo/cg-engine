@@ -4,6 +4,7 @@
     "opengl",
     "glm",
     "tinyxml2",
+    "glew",
     {
       "name": "imgui",
       "features": [

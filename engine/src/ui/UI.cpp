@@ -1,11 +1,6 @@
 #include "UI.hpp"
 
-#include <imgui_internal.h>
-#include <tinyfiledialogs/tinyfiledialogs.h>
-
 #include "../engine/Engine.hpp"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
 
 void LoadMainFont(ImGuiIO& io) {
   ImFontConfig config;

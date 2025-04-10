@@ -9,8 +9,7 @@
     <group>
         <group name="Sol">
             <models>
-                <model file="models\sphere.3d">
-
+                <model file="models\sun.3d">
                 </model>
             </models>
             <transform>

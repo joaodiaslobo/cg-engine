@@ -9,7 +9,7 @@
     <group>
         <models>
             <model file="models/plane_2_3.3d"/>
-            <!--  generator plane 1 3 plane.3d  -->
+            <!--  generator plane 1 3 plane_2_3.3d  -->
         </models>
     </group>
 </world>
