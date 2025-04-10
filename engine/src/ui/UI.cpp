@@ -1,8 +1,7 @@
 #define GLEW_STATIC
-#include <GL/glew.h>
-
 #include "UI.hpp"
 
+#include <GL/glew.h>
 #include <imgui_internal.h>
 #include <tinyfiledialogs/tinyfiledialogs.h>
 

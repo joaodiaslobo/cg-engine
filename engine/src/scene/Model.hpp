@@ -29,5 +29,3 @@ class Model {
 };
 
 optional<Model> loadModel(const string& filename);
-optional<Model> loadObjModel(const string& filename);
-optional<Model> load3dModel(const string& filename);

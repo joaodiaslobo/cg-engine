@@ -191,7 +191,7 @@ void Engine::configureGlfw(Window& window) {
   glfwSetKeyCallback(window.getGlfwWindow(), keyCallback);
   glfwSetCursorPosCallback(window.getGlfwWindow(), mouseCallback);
 
-  if(glewInit() != GLEW_OK) {
+  if (glewInit() != GLEW_OK) {
     logger.error("Failed to initialize GLEW.");
   }
 }
@@ -391,8 +391,7 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
   engine->getCamera()->processMouseMovement(xpos, ypos);
 }
 
-void glfwErrorCallback(const int error, const char *description)
-{
+void glfwErrorCallback(const int error, const char* description) {
   logger.error("GLFW Error: " + std::to_string(error) + ": " +
-              std::string(description));
+               std::string(description));
 }

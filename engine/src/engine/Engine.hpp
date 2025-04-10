@@ -43,4 +43,4 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
 
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 
-void glfwErrorCallback(const int error, const char *description);
+void glfwErrorCallback(const int error, const char* description);

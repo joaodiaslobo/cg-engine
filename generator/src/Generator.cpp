@@ -12,6 +12,16 @@ using glm::vec3;
 using std::vector;
 
 namespace generator {
+
+struct Vec3Hash {
+  std::size_t operator()(const vec3& v) const {
+    std::size_t hx = std::hash<float>{}(v.x);
+    std::size_t hy = std::hash<float>{}(v.y);
+    std::size_t hz = std::hash<float>{}(v.z);
+    return ((hx ^ (hy << 1)) >> 1) ^ (hz << 1);
+  }
+};
+
 vec3 polarToCartesian(float radius, float alpha, float y) {
   return vec3(radius * sin(alpha), y, radius * cos(alpha));
 }
@@ -32,7 +42,7 @@ vec3 sphericalToCartesian(float radius, float alpha, float beta) {
  * @return A Model object containing the vertices of the cone.
  */
 Model Cone(float radius, float height, int slices, int stacks) {
-  vector<vec3> vertices;
+  VertexIndexer<vec3, Vec3Hash> indexer;
 
   float sliceSize = 2 * M_PI / slices;
   float stackSize = height / stacks;
@@ -55,18 +65,24 @@ Model Cone(float radius, float height, int slices, int stacks) {
       vec3 topRight = polarToCartesian(nextRadius, (slice + 1) * sliceSize,
                                        (stack + 1) * stackSize);
 
-      vertices.insert(vertices.end(), {topLeft, bottomLeft, bottomRight});
-      vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
+      indexer.indices.push_back(indexer.addVertex(topLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomRight));
+
+      indexer.indices.push_back(indexer.addVertex(topLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      indexer.indices.push_back(indexer.addVertex(topRight));
     }
 
     vec3 baseBottomLeft = polarToCartesian(radius, slice * sliceSize, 0);
     vec3 baseBottomRight = polarToCartesian(radius, (slice + 1) * sliceSize, 0);
 
-    vertices.insert(vertices.end(),
-                    {baseMiddle, baseBottomRight, baseBottomLeft});
+    indexer.indices.push_back(indexer.addVertex(baseMiddle));
+    indexer.indices.push_back(indexer.addVertex(baseBottomRight));
+    indexer.indices.push_back(indexer.addVertex(baseBottomLeft));
   }
 
-  return {vertices};
+  return {indexer.vertices, indexer.indices};
 }
 
 /**
@@ -78,7 +94,7 @@ Model Cone(float radius, float height, int slices, int stacks) {
  * @return A Model object containing the vertices of the generated sphere.
  */
 Model Sphere(float radius, int slices, int stacks) {
-  vector<vec3> vertices;
+  VertexIndexer<vec3, Vec3Hash> indexer;
 
   float sliceSize = 2 * M_PI / slices;
   float stackSize = M_PI / stacks;
@@ -96,11 +112,16 @@ Model Sphere(float radius, int slices, int stacks) {
       vec3 topRight = sphericalToCartesian(radius, (slice + 1) * sliceSize,
                                            (stack + 1) * stackSize - M_PI_2);
 
-      vertices.insert(vertices.end(), {topLeft, bottomLeft, bottomRight});
-      vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
+      indexer.indices.push_back(indexer.addVertex(topLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomRight));
+
+      indexer.indices.push_back(indexer.addVertex(topLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      indexer.indices.push_back(indexer.addVertex(topRight));
     }
   }
-  return {vertices};
+  return {indexer.vertices, indexer.indices};
 }
 
 /**
@@ -111,7 +132,7 @@ Model Sphere(float radius, int slices, int stacks) {
  * @return A Model object containing the vertices of the generated plane.
  */
 Model Plane(float length, int divisions) {
-  vector<vec3> vertices;
+  VertexIndexer<vec3, Vec3Hash> indexer;
 
   float divisionSize = length / divisions;
   float halfLength = length / 2.0f;
@@ -130,14 +151,16 @@ Model Plane(float length, int divisions) {
       vec3 topLeft = vec3(xPos, 0, zNext);
       vec3 topRight = vec3(xNext, 0, zNext);
 
-      vertices.insert(vertices.end(), {topLeft, bottomLeft, bottomRight});
-      vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
+      indexer.indices.push_back(indexer.addVertex(topLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomRight));
 
-      vertices.insert(vertices.end(), {bottomRight, bottomLeft, topLeft});
-      vertices.insert(vertices.end(), {topRight, bottomRight, topLeft});
+      indexer.indices.push_back(indexer.addVertex(topLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      indexer.indices.push_back(indexer.addVertex(topRight));
     }
   }
-  return {vertices};
+  return {indexer.vertices, indexer.indices};
 }
 
 /**
@@ -150,7 +173,7 @@ Model Plane(float length, int divisions) {
 Model Box(float size, int divisions) {
   float halfSize = size / 2.0f;
   float step = size / divisions;
-  vector<vec3> vertices;
+  VertexIndexer<vec3, Vec3Hash> indexer;
 
   // VERTICES
 
@@ -161,51 +184,57 @@ Model Box(float size, int divisions) {
       float v2 = v1 + step;
       float u2 = u1 + step;
 
-      vertices.insert(vertices.end(),
-                      {vec3(v1, u1, halfSize), vec3(v2, u1, halfSize),
-                       vec3(v1, u2, halfSize)});
-      vertices.insert(vertices.end(),
-                      {vec3(v1, u2, halfSize), vec3(v2, u1, halfSize),
-                       vec3(v2, u2, halfSize)});
+      indexer.indices.push_back(indexer.addVertex(vec3(v1, u1, halfSize)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, halfSize)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v1, u2, halfSize)));
 
-      vertices.insert(vertices.end(),
-                      {vec3(v1, u1, -halfSize), vec3(v1, u2, -halfSize),
-                       vec3(v2, u1, -halfSize)});
-      vertices.insert(vertices.end(),
-                      {vec3(v1, u2, -halfSize), vec3(v2, u2, -halfSize),
-                       vec3(v2, u1, -halfSize)});
+      indexer.indices.push_back(indexer.addVertex(vec3(v1, u2, halfSize)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, halfSize)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v2, u2, halfSize)));
 
-      vertices.insert(vertices.end(),
-                      {vec3(-halfSize, v1, u1), vec3(-halfSize, v1, u2),
-                       vec3(-halfSize, v2, u1)});
-      vertices.insert(vertices.end(),
-                      {vec3(-halfSize, v1, u2), vec3(-halfSize, v2, u2),
-                       vec3(-halfSize, v2, u1)});
+      indexer.indices.push_back(indexer.addVertex(vec3(v1, u1, -halfSize)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v1, u2, -halfSize)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, -halfSize)));
 
-      vertices.insert(vertices.end(),
-                      {vec3(halfSize, v1, u1), vec3(halfSize, v2, u1),
-                       vec3(halfSize, v1, u2)});
-      vertices.insert(vertices.end(),
-                      {vec3(halfSize, v1, u2), vec3(halfSize, v2, u1),
-                       vec3(halfSize, v2, u2)});
+      indexer.indices.push_back(indexer.addVertex(vec3(v1, u2, -halfSize)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, -halfSize)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, -halfSize)));
 
-      vertices.insert(vertices.end(),
-                      {vec3(v1, halfSize, u1), vec3(v1, halfSize, u2),
-                       vec3(v2, halfSize, u1)});
-      vertices.insert(vertices.end(),
-                      {vec3(v1, halfSize, u2), vec3(v2, halfSize, u2),
-                       vec3(v2, halfSize, u1)});
+      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v1, u1)));
+      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v1, u2)));
+      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v2, u1)));
 
-      vertices.insert(vertices.end(),
-                      {vec3(v1, -halfSize, u1), vec3(v2, -halfSize, u1),
-                       vec3(v1, -halfSize, u2)});
-      vertices.insert(vertices.end(),
-                      {vec3(v1, -halfSize, u2), vec3(v2, -halfSize, u1),
-                       vec3(v2, -halfSize, u2)});
+      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v1, u2)));
+      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v2, u2)));
+      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v2, u1)));
+
+      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v1, u1)));
+      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v2, u1)));
+      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v1, u2)));
+
+      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v1, u2)));
+      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v2, u1)));
+      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v2, u2)));
+
+      indexer.indices.push_back(indexer.addVertex(vec3(v1, halfSize, u1)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v1, halfSize, u2)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v2, halfSize, u1)));
+
+      indexer.indices.push_back(indexer.addVertex(vec3(v1, halfSize, u2)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v2, halfSize, u2)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v2, halfSize, u1)));
+
+      indexer.indices.push_back(indexer.addVertex(vec3(v1, -halfSize, u1)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v2, -halfSize, u1)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v1, -halfSize, u2)));
+
+      indexer.indices.push_back(indexer.addVertex(vec3(v1, -halfSize, u2)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v2, -halfSize, u1)));
+      indexer.indices.push_back(indexer.addVertex(vec3(v2, -halfSize, u2)));
     }
   }
 
-  return Model{vertices};
+  return Model{indexer.vertices, indexer.indices};
 }
 
 /**
@@ -220,7 +249,7 @@ Model Box(float size, int divisions) {
  * @return A Model object containing the vertices of the cylinder.
  */
 Model Cylinder(float radius, float height, int slices, int stacks) {
-  vector<vec3> vertices;
+  VertexIndexer<vec3, Vec3Hash> indexer;
 
   float sliceSize = 2 * M_PI / slices;
   float halfHeight = height / 2.0f;
@@ -243,8 +272,13 @@ Model Cylinder(float radius, float height, int slices, int stacks) {
       vec3 topLeft = polarToCartesian(radius, angle1, nextHeight);
       vec3 topRight = polarToCartesian(radius, angle2, nextHeight);
 
-      vertices.insert(vertices.end(), {bottomLeft, bottomRight, topLeft});
-      vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
+      indexer.indices.push_back(indexer.addVertex(bottomLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      indexer.indices.push_back(indexer.addVertex(topLeft));
+
+      indexer.indices.push_back(indexer.addVertex(topLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      indexer.indices.push_back(indexer.addVertex(topRight));
     }
   }
 
@@ -258,11 +292,16 @@ Model Cylinder(float radius, float height, int slices, int stacks) {
     vec3 topLeft = polarToCartesian(radius, angle1, halfHeight);
     vec3 topRight = polarToCartesian(radius, angle2, halfHeight);
 
-    vertices.insert(vertices.end(), {baseMiddle, baseRight, baseLeft});
-    vertices.insert(vertices.end(), {topMiddle, topLeft, topRight});
+    indexer.indices.push_back(indexer.addVertex(baseMiddle));
+    indexer.indices.push_back(indexer.addVertex(baseRight));
+    indexer.indices.push_back(indexer.addVertex(baseLeft));
+
+    indexer.indices.push_back(indexer.addVertex(topMiddle));
+    indexer.indices.push_back(indexer.addVertex(topLeft));
+    indexer.indices.push_back(indexer.addVertex(topRight));
   }
 
-  return {vertices};
+  return {indexer.vertices, indexer.indices};
 }
 
 /**
@@ -276,7 +315,7 @@ Model Cylinder(float radius, float height, int slices, int stacks) {
  * @return A Model object containing the vertices of the torus.
  */
 Model Torus(float radius, float tubeRadius, int slices, int stacks) {
-  vector<vec3> vertices;
+  VertexIndexer<vec3, Vec3Hash> indexer;
 
   for (int stack = 0; stack < stacks; stack++) {
     float theta1 = 2 * stack * M_PI / stacks;
@@ -299,11 +338,16 @@ Model Torus(float radius, float tubeRadius, int slices, int stacks) {
                               tubeRadius * sin(phi2),
                               (radius + tubeRadius * cos(phi2)) * sin(theta2));
 
-      vertices.insert(vertices.end(), {topLeft, bottomLeft, bottomRight});
-      vertices.insert(vertices.end(), {topLeft, bottomRight, topRight});
+      indexer.indices.push_back(indexer.addVertex(topLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomRight));
+
+      indexer.indices.push_back(indexer.addVertex(topLeft));
+      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      indexer.indices.push_back(indexer.addVertex(topRight));
     }
   }
-  return {vertices};
+  return {indexer.vertices, indexer.indices};
 }
 
 /**
@@ -319,7 +363,7 @@ Model Icosphere(float radius, int subdivisions) {
     return {};
   }
 
-  vector<vec3> vertices;
+  VertexIndexer<vec3, Vec3Hash> indexer;
 
   float t = (1.0f + sqrt(5.0f)) / 2.0f;
 
@@ -383,19 +427,19 @@ Model Icosphere(float radius, int subdivisions) {
       vec3 b = icosahedronVertices[face.y];
       vec3 c = icosahedronVertices[face.z];
 
-      vertices.push_back(a * radius);
-      vertices.push_back(b * radius);
-      vertices.push_back(c * radius);
+      indexer.indices.push_back(indexer.addVertex(a * radius));
+      indexer.indices.push_back(indexer.addVertex(b * radius));
+      indexer.indices.push_back(indexer.addVertex(c * radius));
     }
 
     icosahedronVertices = newVertices;
   }
 
   for (const auto& vertex : icosahedronVertices) {
-    vertices.push_back(vertex * radius);
+    indexer.indices.push_back(indexer.addVertex(vertex * radius));
   }
 
-  return {vertices};
+  return {indexer.vertices, indexer.indices};
 }
 
 /**
@@ -416,12 +460,21 @@ bool Export(const Model& model, const std::string& filename) {
     return false;
   }
 
+  // Write vertex positions
   for (const auto& vertex : model.vertices) {
     file << "v " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
   }
 
-  file.flush();
+  // Write faces (triangles)
+  for (size_t i = 0; i < model.indices.size(); i += 3) {
+    // OBJ indices start at 1, not 0
+    unsigned int i1 = model.indices[i] + 1;
+    unsigned int i2 = model.indices[i + 1] + 1;
+    unsigned int i3 = model.indices[i + 2] + 1;
+    file << "f " << i1 << " " << i2 << " " << i3 << "\n";
+  }
 
+  file.flush();
   return true;
 }
 }  // namespace generator
