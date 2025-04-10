@@ -10,7 +10,6 @@
         <group name="Sol">
             <models>
                 <model file="models\sun.3d">
-
                 </model>
             </models>
             <transform>
