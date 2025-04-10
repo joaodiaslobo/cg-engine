@@ -1,6 +1,10 @@
 #pragma once
 
+#include <GL/glew.h>
+#define GLFW_INCLUDE_GLU
 #include <GLFW/glfw3.h>
+#include <imgui_internal.h>
+#include <tinyfiledialogs/tinyfiledialogs.h>
 
 #include "../window/Window.hpp"
 #include "imgui_impl_glfw.h"
