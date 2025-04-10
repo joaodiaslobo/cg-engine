@@ -105,6 +105,7 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
       std::string filename = modelElement->Attribute("file");
       std::optional<Model> loadedModel = loadModel(filename);
       if (loadedModel.has_value()) {
+        loadedModel.value().sendModelToGPU();
         group.addModel(loadedModel.value());
       } else {
         logger.error("Failed to load model from file: " + filename + ".");

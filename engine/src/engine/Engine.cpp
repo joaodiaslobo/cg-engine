@@ -71,6 +71,8 @@ bool Engine::initializeFromFile(const string& filename) {
     return false;
   }
 
+  configureGlfw(window);
+
   // Camera
 
   tinyxml2::XMLElement* cameraElement = root->FirstChildElement("camera");
@@ -136,8 +138,6 @@ bool Engine::initializeFromFile(const string& filename) {
 
   scene.setRoot(initializeGroupFromXML(rootGroupElement));
 
-  configureGlfw(window);
-
   ui.initialize(&window);
 
   setupProjectionAndView();
@@ -184,11 +184,16 @@ bool Engine::loadNewFile(const std::string& filename) {
  * @param window The window for which to configure GLFW callbacks.
  */
 void Engine::configureGlfw(Window& window) {
+  glfwSetErrorCallback(glfwErrorCallback);
   glfwSetWindowUserPointer(window.getGlfwWindow(), this);
   glfwSetFramebufferSizeCallback(window.getGlfwWindow(),
                                  windowSizeUpdatedCallback);
   glfwSetKeyCallback(window.getGlfwWindow(), keyCallback);
   glfwSetCursorPosCallback(window.getGlfwWindow(), mouseCallback);
+
+  if(glewInit() != GLEW_OK) {
+    logger.error("Failed to initialize GLEW.");
+  }
 }
 
 /**
@@ -203,6 +208,7 @@ void Engine::configureGlfw(Window& window) {
 void Engine::run() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
+  glEnableClientState(GL_VERTEX_ARRAY);
 
   double lastTime = glfwGetTime();
 
@@ -383,4 +389,10 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
 void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
   Engine* engine = static_cast<Engine*>(glfwGetWindowUserPointer(window));
   engine->getCamera()->processMouseMovement(xpos, ypos);
+}
+
+void glfwErrorCallback(const int error, const char *description)
+{
+  logger.error("GLFW Error: " + std::to_string(error) + ": " +
+              std::string(description));
 }

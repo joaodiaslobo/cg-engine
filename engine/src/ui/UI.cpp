@@ -1,3 +1,6 @@
+#define GLEW_STATIC
+#include <GL/glew.h>
+
 #include "UI.hpp"
 
 #include <imgui_internal.h>

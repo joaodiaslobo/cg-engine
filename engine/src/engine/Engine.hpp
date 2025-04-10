@@ -1,5 +1,6 @@
 #pragma once
 
+#include <GL/glew.h>
 #define GLFW_INCLUDE_GLU
 #include <GLFW/glfw3.h>
 #include <tinyxml2.h>
@@ -41,3 +42,5 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
                  int mods);
 
 void mouseCallback(GLFWwindow* window, double xpos, double ypos);
+
+void glfwErrorCallback(const int error, const char *description);
