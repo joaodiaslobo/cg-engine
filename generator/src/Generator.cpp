@@ -445,6 +445,13 @@ Model Icosphere(float radius, int subdivisions) {
   return {indexer.vertices, indexer.indices};
 }
 
+/**
+ * @brief Generates a Bezier patch from the given control points.
+ *
+ * @param control_points The control points of the Bezier patch.
+ * @param tesselation_level The level of tessellation for the patch.
+ * @return A vector of vertices representing the Bezier patch.
+ */
 std::vector<vec3> BezierPatch(const std::array<vec3, 16> &control_points, const size_t tesselation_level) {
   std::vector<vec3> vertices((tesselation_level + 1) * (tesselation_level + 1));
 
@@ -479,6 +486,14 @@ std::vector<vec3> BezierPatch(const std::array<vec3, 16> &control_points, const 
   return vertices;
 }
 
+/**
+ * @brief Generates a 3D model of a Bezier surface from a patch file.
+ *
+ * @param patch The path to the patch file.
+ * @param tessellation The number of subdivisions for tessellation.
+ * @return A Model object containing the vertices and indices of the generated
+ * surface.
+ */
 Model BezierSurface(const std::string patch, int tessellation) {
   // Read and parse the patch file
 
@@ -532,11 +547,31 @@ Model BezierSurface(const std::string patch, int tessellation) {
     }
 
     std::vector<vec3> vertices = BezierPatch(patch_vertices, tessellation);
-    for (int i = 0; i < vertices.size(); ++i) {
-      indexer.indices.push_back(indexer.addVertex(vertices[i]));
+    std::vector<std::vector<uint32_t>> index_grid(tessellation + 1, std::vector<uint32_t>(tessellation + 1));
+
+    for (int j = 0; j <= tessellation; ++j) {
+      for (int k = 0; k <= tessellation; ++k) {
+        int idx = j * (tessellation + 1) + k;
+        index_grid[j][k] = indexer.addVertex(vertices[idx]);
+      }
     }
 
-    start += (tessellation + 1) * (tessellation + 1);
+    for (int z = 0; z < tessellation; ++z) {
+      for (int x = 0; x < tessellation; ++x) {
+        uint32_t top_left = index_grid[z][x];
+        uint32_t top_right = index_grid[z][x + 1];
+        uint32_t bottom_left = index_grid[z + 1][x];
+        uint32_t bottom_right = index_grid[z + 1][x + 1];
+
+        indexer.indices.push_back(top_left);
+        indexer.indices.push_back(bottom_left);
+        indexer.indices.push_back(bottom_right);
+
+        indexer.indices.push_back(top_left);
+        indexer.indices.push_back(bottom_right);
+        indexer.indices.push_back(top_right);
+      }
+    }
   }
 
   return {indexer.vertices, indexer.indices};
