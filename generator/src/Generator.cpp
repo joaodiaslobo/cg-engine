@@ -5,10 +5,13 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#include <array>
 #include <fstream>
+#include <glm/vec3.hpp>
 #include <iostream>
 
 using glm::vec3;
+using glm::vec4;
 using std::vector;
 
 namespace generator {
@@ -442,6 +445,103 @@ Model Icosphere(float radius, int subdivisions) {
   return {indexer.vertices, indexer.indices};
 }
 
+std::vector<vec3> BezierPatch(const std::array<vec3, 16> &control_points, const size_t tesselation_level) {
+  std::vector<vec3> vertices((tesselation_level + 1) * (tesselation_level + 1));
+
+  glm::mat4 bernstein_matrix = glm::mat4(
+      -1, 3, -3, 1,
+      3, -6, 3, 0,
+      -3, 3, 0, 0,
+      1, 0, 0, 0);
+  
+  for(int i = 0; i < 3; i++){
+    glm::mat4 points_matrix = glm::mat4(
+        control_points[0][i], control_points[1][i], control_points[2][i], control_points[3][i],
+        control_points[4][i], control_points[5][i], control_points[6][i], control_points[7][i],
+        control_points[8][i], control_points[9][i], control_points[10][i], control_points[11][i],
+        control_points[12][i], control_points[13][i], control_points[14][i], control_points[15][i]);
+
+    glm::mat4 result_matrix = bernstein_matrix * points_matrix * bernstein_matrix;
+
+    for (int j = 0; j <= tesselation_level; j++) {
+      for(int k = 0; k <= tesselation_level; k++){
+        float u = static_cast<float>(j) / tesselation_level;
+        float v = static_cast<float>(k) / tesselation_level;
+
+        vec4 u_vector = {u * u * u, u * u, u, 1};
+        vec4 v_vector = {v * v * v, v * v, v, 1};
+
+        vertices[j * (tesselation_level + 1) + k][i] = glm::dot(v_vector, result_matrix * u_vector);
+      }
+    }
+  }
+
+  return vertices;
+}
+
+Model BezierSurface(const std::string patch, int tessellation) {
+  // Read and parse the patch file
+
+  std::ifstream file(patch);
+
+  if (!file.is_open()) {
+    std::cerr << "Failed to open file: " << patch << std::endl;
+    return {};
+  }
+
+  int32_t patch_count;
+  file >> patch_count;
+  std::vector<std::vector<unsigned int>> patches(patch_count,
+                                                 std::vector<unsigned int>(16));
+  for (int i = 0; i < patch_count; i++) {
+    for (int j = 0; j < 16; ++j) {
+      size_t idx;
+      file >> idx;
+      file.ignore();
+      patches[i][j] = idx;
+    }
+  }
+
+  int32_t control_points_count;
+  file >> control_points_count;
+  std::vector<vec3> control_points;
+  control_points.reserve(control_points_count);
+
+  for (int i = 0; i < control_points_count; i++) {
+    float x, y, z;
+    file >> x;
+    file.ignore();
+    file >> y;
+    file.ignore();
+    file >> z;
+    file.ignore();
+
+    control_points.push_back(vec3(x, y, z));
+  }
+
+  file.close();
+
+  // Generate model
+  VertexIndexer<vec3, Vec3Hash> indexer;
+
+  uint32_t start = 0;
+  for (const auto& patch : patches) {
+    std::array<glm::vec3, 16> patch_vertices;
+    for (int i = 0; i < patch.size(); ++i) {
+      patch_vertices[i] = control_points[patch[i]];
+    }
+
+    std::vector<vec3> vertices = BezierPatch(patch_vertices, tessellation);
+    for (int i = 0; i < vertices.size(); ++i) {
+      indexer.indices.push_back(indexer.addVertex(vertices[i]));
+    }
+
+    start += (tessellation + 1) * (tessellation + 1);
+  }
+
+  return {indexer.vertices, indexer.indices};
+}
+
 /**
  * @brief Exports the given model to a file.
  *
@@ -477,4 +577,17 @@ bool Export(const Model& model, const std::string& filename) {
   file.flush();
   return true;
 }
+
+Model Patch(std::string path, unsigned int tesselation) {
+  Model model;
+  std::ifstream file(path);
+  if (!file.is_open()) {
+    std::cerr << "Failed to open file: " << path << std::endl;
+    return model;
+  }
+
+  file.close();
+  return model;
+}
+
 }  // namespace generator
