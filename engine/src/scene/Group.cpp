@@ -14,17 +14,17 @@ static debug::Logger logger;
  * their render function. It then iterates through all child groups and calls
  * their render function recursively.
  */
-void Group::render() {
+void Group::render(float time) {
   glPushMatrix();
 
-  applyTransformations(transformations);
+  applyTransformations(transformations, time);
 
   for (Model& model : models) {
     model.render();
   }
 
   for (Group& group : children) {
-    group.render();
+    group.render(time);
   }
 
   glPopMatrix();
@@ -85,11 +85,25 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
         float z = transformation->FloatAttribute("z");
         group.addTransformation(std::make_unique<Scale>(x, y, z));
       } else if (tag == "rotate") {
-        float angle = transformation->FloatAttribute("angle");
+        float angle = 0.0f;
+        float duration = 0.0f;
+
+        // Can either have angle or time
+        if (transformation->Attribute("time") != nullptr) {
+          duration = transformation->FloatAttribute("time");
+        } else if (transformation->Attribute("angle") != nullptr) {
+          angle = transformation->FloatAttribute("angle");
+        } else {
+          logger.error("No angle or time attribute found for rotate (" +
+                       group.getName() + ").");
+        }
+
         float x = transformation->FloatAttribute("x");
         float y = transformation->FloatAttribute("y");
         float z = transformation->FloatAttribute("z");
-        group.addTransformation(std::make_unique<Rotate>(angle, x, y, z));
+
+        group.addTransformation(
+            std::make_unique<Rotate>(angle, duration, x, y, z));
       }
 
       transformation = transformation->NextSiblingElement();
@@ -135,12 +149,13 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
  *                        that represent the transformations to apply.
  */
 void applyTransformations(
-    const std::vector<std::unique_ptr<Transformation>>& transformations) {
+    const std::vector<std::unique_ptr<Transformation>>& transformations,
+    float time) {
   glm::mat4 modelMatrix = glm::mat4(1.0f);
 
   for (const std::unique_ptr<Transformation>& transformation :
        transformations) {
-    modelMatrix = transformation->apply(modelMatrix);
+    modelMatrix = transformation->apply(modelMatrix, time);
   }
 
   glMultMatrixf(glm::value_ptr(modelMatrix));
