@@ -30,6 +30,7 @@ Model Box(float size, int divisions);
 Model Cylinder(float radius, float height, int slices, int stacks);
 Model Torus(float radius, float tubeRadius, int slices, int stacks);
 Model Icosphere(float radius, int subdivisions);
+Model BezierSurface(std::string patch, int tessellation);
 bool Export(const Model& model, const std::string& filename);
 
 template <typename Vertex, typename Hash = std::hash<Vertex>>

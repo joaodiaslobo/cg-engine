@@ -17,7 +17,8 @@ void printUsage() {
          "<output_file>\n"
       << "  generator torus <radius> <tube_radius> <slices> <stacks> "
          "<output_file>\n"
-      << " generator icosphere <radius> <subdivisions> <output_file>\n";
+      << " generator icosphere <radius> <subdivisions> <output_file>\n"
+      << " generator patch <patch_file> <tessellation> <output_file>\n";
 }
 
 void handleSphere(const std::vector<std::string>& args) {
@@ -109,6 +110,18 @@ void handleIcosphere(const std::vector<std::string>& args) {
   generator::Export(model, args[3]);
 }
 
+void handleBezierSurface(const std::vector<std::string>& args) {
+  std::cout << "Generating model from patch file " << args[1]
+            << ", tesselation: " << args[2] << "| Output: " << args[3]
+            << std::endl;
+
+  std::string patchFile = args[1];
+  int tessellation = std::stoi(args[2]);
+
+  Model model = generator::BezierSurface(patchFile, tessellation);
+  generator::Export(model, args[3]);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 2) {
     std::cerr << "Error: No command provided.\n";
@@ -119,11 +132,14 @@ int main(int argc, char* argv[]) {
   std::unordered_map<
       std::string,
       std::pair<int, std::function<void(const std::vector<std::string>&)>>>
-      commandMap = {
-          {"sphere", {5, handleSphere}},      {"box", {4, handleBox}},
-          {"cone", {6, handleCone}},          {"plane", {4, handlePlane}},
-          {"cylinder", {6, handleCylinder}},  {"torus", {6, handleTorus}},
-          {"icosphere", {4, handleIcosphere}}};
+      commandMap = {{"sphere", {5, handleSphere}},
+                    {"box", {4, handleBox}},
+                    {"cone", {6, handleCone}},
+                    {"plane", {4, handlePlane}},
+                    {"cylinder", {6, handleCylinder}},
+                    {"torus", {6, handleTorus}},
+                    {"icosphere", {4, handleIcosphere}},
+                    {"patch", {4, handleBezierSurface}}};
 
   std::vector<std::string> args(argv + 1, argv + argc);
   std::string command = args[0];
