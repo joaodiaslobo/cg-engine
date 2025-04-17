@@ -452,33 +452,35 @@ Model Icosphere(float radius, int subdivisions) {
  * @param tesselation_level The level of tessellation for the patch.
  * @return A vector of vertices representing the Bezier patch.
  */
-std::vector<vec3> BezierPatch(const std::array<vec3, 16> &control_points, const size_t tesselation_level) {
+std::vector<vec3> BezierPatch(const std::array<vec3, 16>& control_points,
+                              const size_t tesselation_level) {
   std::vector<vec3> vertices((tesselation_level + 1) * (tesselation_level + 1));
 
-  glm::mat4 bernstein_matrix = glm::mat4(
-      -1, 3, -3, 1,
-      3, -6, 3, 0,
-      -3, 3, 0, 0,
-      1, 0, 0, 0);
-  
-  for(int i = 0; i < 3; i++){
-    glm::mat4 points_matrix = glm::mat4(
-        control_points[0][i], control_points[1][i], control_points[2][i], control_points[3][i],
-        control_points[4][i], control_points[5][i], control_points[6][i], control_points[7][i],
-        control_points[8][i], control_points[9][i], control_points[10][i], control_points[11][i],
-        control_points[12][i], control_points[13][i], control_points[14][i], control_points[15][i]);
+  glm::mat4 bernstein_matrix =
+      glm::mat4(-1, 3, -3, 1, 3, -6, 3, 0, -3, 3, 0, 0, 1, 0, 0, 0);
 
-    glm::mat4 result_matrix = bernstein_matrix * points_matrix * bernstein_matrix;
+  for (int i = 0; i < 3; i++) {
+    glm::mat4 points_matrix = glm::mat4(
+        control_points[0][i], control_points[1][i], control_points[2][i],
+        control_points[3][i], control_points[4][i], control_points[5][i],
+        control_points[6][i], control_points[7][i], control_points[8][i],
+        control_points[9][i], control_points[10][i], control_points[11][i],
+        control_points[12][i], control_points[13][i], control_points[14][i],
+        control_points[15][i]);
+
+    glm::mat4 result_matrix =
+        bernstein_matrix * points_matrix * bernstein_matrix;
 
     for (int j = 0; j <= tesselation_level; j++) {
-      for(int k = 0; k <= tesselation_level; k++){
+      for (int k = 0; k <= tesselation_level; k++) {
         float u = static_cast<float>(j) / tesselation_level;
         float v = static_cast<float>(k) / tesselation_level;
 
         vec4 u_vector = {u * u * u, u * u, u, 1};
         vec4 v_vector = {v * v * v, v * v, v, 1};
 
-        vertices[j * (tesselation_level + 1) + k][i] = glm::dot(v_vector, result_matrix * u_vector);
+        vertices[j * (tesselation_level + 1) + k][i] =
+            glm::dot(v_vector, result_matrix * u_vector);
       }
     }
   }
@@ -547,7 +549,8 @@ Model BezierSurface(const std::string patch, int tessellation) {
     }
 
     std::vector<vec3> vertices = BezierPatch(patch_vertices, tessellation);
-    std::vector<std::vector<uint32_t>> index_grid(tessellation + 1, std::vector<uint32_t>(tessellation + 1));
+    std::vector<std::vector<uint32_t>> index_grid(
+        tessellation + 1, std::vector<uint32_t>(tessellation + 1));
 
     for (int j = 0; j <= tessellation; ++j) {
       for (int k = 0; k <= tessellation; ++k) {
