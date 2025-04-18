@@ -26,7 +26,7 @@ class Group {
   Group(Group&&) = default;
   Group& operator=(Group&&) = default;
 
-  void render();
+  void render(float time);
   void setName(string name) { this->name = name; }
   string getName() const { return name; }
   void addChild(Group child) { children.push_back(std::move(child)); }
@@ -41,4 +41,5 @@ class Group {
 
 Group initializeGroupFromXML(tinyxml2::XMLElement* element);
 void applyTransformations(
-    const std::vector<std::unique_ptr<Transformation>>& transformations);
+    const std::vector<std::unique_ptr<Transformation>>& transformations,
+    float time);

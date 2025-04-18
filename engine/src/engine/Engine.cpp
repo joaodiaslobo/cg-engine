@@ -220,6 +220,8 @@ void Engine::run() {
     glfwPollEvents();
 
     camera.update(deltaTime);
+    scene.updateTime(deltaTime);
+
     render();
     glfwSwapBuffers(window.getGlfwWindow());
   }

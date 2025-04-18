@@ -4,6 +4,6 @@
 
 class Transformation {
  public:
-  virtual glm::mat4 apply(const glm::mat4& matrix) const = 0;
+  virtual glm::mat4 apply(const glm::mat4& matrix, float time) const = 0;
   virtual ~Transformation() = default;
 };

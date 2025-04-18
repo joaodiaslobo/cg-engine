@@ -6,7 +6,7 @@ class Translate : public Transformation {
   float x, y, z;
   Translate(float x, float y, float z) : x(x), y(y), z(z) {}
 
-  glm::mat4 apply(const glm::mat4& matrix) const override {
+  glm::mat4 apply(const glm::mat4& matrix, float time) const override {
     return glm::translate(matrix, glm::vec3(x, y, z));
   }
 };
