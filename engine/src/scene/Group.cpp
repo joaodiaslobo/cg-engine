@@ -1,6 +1,7 @@
 #include "Group.hpp"
 
 #include "debug/Logger.hpp"
+#include "math/Path.hpp"
 #include "math/Rotate.hpp"
 #include "math/Scale.hpp"
 #include "math/Translate.hpp"
@@ -75,10 +76,40 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
       std::string tag = transformation->Value();
 
       if (tag == "translate") {
-        float x = transformation->FloatAttribute("x");
-        float y = transformation->FloatAttribute("y");
-        float z = transformation->FloatAttribute("z");
-        group.addTransformation(std::make_unique<Translate>(x, y, z));
+        if (transformation->Attribute("time") != nullptr) {
+          // Path based translation
+          float duration = transformation->FloatAttribute("time");
+          std::vector<vec3> path;
+          for (tinyxml2::XMLElement* point =
+                   transformation->FirstChildElement("point");
+               point != nullptr; point = point->NextSiblingElement("point")) {
+            float x = point->FloatAttribute("x");
+            float y = point->FloatAttribute("y");
+            float z = point->FloatAttribute("z");
+            path.push_back(vec3(x, y, z));
+          }
+
+          bool align = false;
+
+          if (transformation->Attribute("align") != nullptr) {
+            align = transformation->BoolAttribute("align");
+          }
+
+          bool render_path = false;
+
+          if (transformation->Attribute("render_path") != nullptr) {
+            render_path = transformation->BoolAttribute("render_path");
+          }
+
+          group.addTransformation(
+              std::make_unique<Path>(duration, align, path, render_path));
+        } else {
+          // Normal translation
+          float x = transformation->FloatAttribute("x");
+          float y = transformation->FloatAttribute("y");
+          float z = transformation->FloatAttribute("z");
+          group.addTransformation(std::make_unique<Translate>(x, y, z));
+        }
       } else if (tag == "scale") {
         float x = transformation->FloatAttribute("x");
         float y = transformation->FloatAttribute("y");
