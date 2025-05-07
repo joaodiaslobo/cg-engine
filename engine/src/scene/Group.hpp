@@ -26,7 +26,7 @@ class Group {
   Group(Group&&) = default;
   Group& operator=(Group&&) = default;
 
-  void render(float time);
+  void render(float time, bool renderNormals);
   void setName(string name) { this->name = name; }
   string getName() const { return name; }
   void addChild(Group child) { children.push_back(std::move(child)); }

@@ -15,17 +15,20 @@ static debug::Logger logger;
  * their render function. It then iterates through all child groups and calls
  * their render function recursively.
  */
-void Group::render(float time) {
+void Group::render(float time, bool renderNormals) {
   glPushMatrix();
 
   applyTransformations(transformations, time);
 
   for (Model& model : models) {
     model.render();
+    if (renderNormals) {
+      model.renderNormals(2.0f);
+    }
   }
 
   for (Group& group : children) {
-    group.render(time);
+    group.render(time, renderNormals);
   }
 
   glPopMatrix();

@@ -1,5 +1,5 @@
 #include "Scene.hpp"
 
-void Scene::render() { root.render(time); }
+void Scene::render(bool showNormals) { root.render(time, showNormals); }
 
 void Scene::clear() { root.clear(); }

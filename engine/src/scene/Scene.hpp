@@ -11,7 +11,7 @@ struct Scene {
   float time = 0.0f;
 
  public:
-  void render();
+  void render(bool showNormals);
 
   void setRoot(Group&& root) { this->root = std::move(root); }
 

@@ -21,6 +21,7 @@ class Engine {
   Scene scene;
   Camera camera;
   UI ui;
+  Settings settings;
 
  public:
   bool initialize();
@@ -34,6 +35,7 @@ class Engine {
   Camera* getCamera() { return &camera; }
   Scene* getScene() { return &scene; }
   UI* getUI() { return &ui; }
+  Settings* getSettings() { return &settings; }
 };
 
 void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height);

@@ -303,7 +303,7 @@ void Engine::render() {
 
   camera.render();
 
-  scene.render();
+  scene.render(settings.getShowNormals());
 
   renderSceneAxis();
 
@@ -372,6 +372,15 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
     engine->getUI()->toggleUI();
   } else if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
+  } else if (key == GLFW_KEY_N && action == GLFW_PRESS) {
+    engine->getSettings()->toggleNormals();
+  } else if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+    engine->getSettings()->toggleWireframe();
+    if (engine->getSettings()->getShowWireframe()) {
+      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    } else {
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
   }
 
   engine->getCamera()->processKeyboard(key, action);
