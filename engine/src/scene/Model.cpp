@@ -306,7 +306,7 @@ void Model::renderNormals(float scale) {
 
   glBegin(GL_LINES);
 
-  for (size_t i = 0; i < vertices.size(); i ++) {
+  for (size_t i = 0; i < vertices.size(); i++) {
     const vec3& vertex = vertices[i];
     const vec3& normal = normals[i];
 

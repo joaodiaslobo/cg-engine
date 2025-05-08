@@ -129,13 +129,65 @@ bool Engine::initializeFromFile(const string& filename) {
 
   // Scene
 
+  // Lights
+
+  tinyxml2::XMLElement* lightsElement = root->FirstChildElement("lights");
+
+  if (lightsElement != nullptr) {
+    for (tinyxml2::XMLElement* lightElement =
+             lightsElement->FirstChildElement("light");
+         lightElement != nullptr;
+         lightElement = lightElement->NextSiblingElement("light")) {
+      Light light;
+
+      LightType type;
+      std::string typeStr = lightElement->Attribute("type");
+
+      if (typeStr == "directional") {
+        type = LightType::DIRECTIONAL;
+      } else if (typeStr == "point") {
+        type = LightType::POINT;
+      } else if (typeStr == "spotlight") {
+        type = LightType::SPOTLIGHT;
+      } else {
+        logger.error("Unknown light type: " + typeStr);
+        continue;
+      }
+
+      light.setType(type);
+
+      if (type != LightType::DIRECTIONAL) {
+        float x, y, z;
+        lightElement->QueryFloatAttribute("posX", &x);
+        lightElement->QueryFloatAttribute("posY", &y);
+        lightElement->QueryFloatAttribute("posZ", &z);
+        light.setPosition(glm::vec3(x, y, z));
+      }
+
+      if (type != LightType::POINT) {
+        float x, y, z;
+        lightElement->QueryFloatAttribute("dirX", &x);
+        lightElement->QueryFloatAttribute("dirY", &y);
+        lightElement->QueryFloatAttribute("dirZ", &z);
+        light.setDirection(glm::vec3(x, y, z));
+      }
+
+      if (type == LightType::SPOTLIGHT) {
+        float cutoff;
+        lightElement->QueryFloatAttribute("cutoff", &cutoff);
+        light.setCutoff(cutoff);
+      }
+
+      scene.addLight(light);
+    }
+  }
+
   tinyxml2::XMLElement* rootGroupElement = root->FirstChildElement("group");
 
   if (rootGroupElement == nullptr) {
     logger.error("Failed to find root group element in file: " + filename);
     return false;
   }
-
   scene.setRoot(initializeGroupFromXML(rootGroupElement));
 
   ui.initialize(&window);
