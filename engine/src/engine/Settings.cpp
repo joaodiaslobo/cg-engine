@@ -6,8 +6,20 @@ static debug::Logger logger;
 
 bool Settings::getShowNormals() { return showNormals; }
 
-bool Settings::getShowWireframe() { return showWireframe; }
+void Settings::toggleViewmode() {
+  switch (viewMode) {
+    case WIREFRAME:
+      viewMode = FLAT;
+      break;
+    case FLAT:
+      viewMode = SHADED;
+      break;
+    case SHADED:
+      viewMode = WIREFRAME;
+      break;
+  }
+}
 
 void Settings::toggleNormals() { showNormals = !showNormals; }
 
-void Settings::toggleWireframe() { showWireframe = !showWireframe; }
+ViewMode Settings::getViewmode() { return viewMode; }

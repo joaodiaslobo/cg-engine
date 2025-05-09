@@ -36,6 +36,10 @@ class Engine {
   Scene* getScene() { return &scene; }
   UI* getUI() { return &ui; }
   Settings* getSettings() { return &settings; }
+  void disableLightRendering();
+  void maybeEnableLightRendering();
+  void renderSceneAxis();
+  void renderLights();
 };
 
 void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height);

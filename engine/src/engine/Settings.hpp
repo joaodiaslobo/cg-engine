@@ -1,13 +1,15 @@
 #pragma once
 
+enum ViewMode { WIREFRAME, FLAT, SHADED };
+
 class Settings {
  private:
   bool showNormals = false;
-  bool showWireframe = true;
+  ViewMode viewMode = WIREFRAME;
 
  public:
   void toggleNormals();
-  void toggleWireframe();
+  void toggleViewmode();
   bool getShowNormals();
-  bool getShowWireframe();
+  ViewMode getViewmode();
 };

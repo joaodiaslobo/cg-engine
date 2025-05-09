@@ -17,6 +17,7 @@ class Light {
   void setCutoff(float cutoff);
   void setType(LightType t);
   void setDirection(const glm::vec3& dir);
+  void render(int lightIndex);
 
   glm::vec3& getDirection();
   glm::vec3& getPosition();

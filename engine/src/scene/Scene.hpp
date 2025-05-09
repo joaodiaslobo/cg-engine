@@ -26,4 +26,6 @@ struct Scene {
   void updateTime(float delta) { time += delta; }
 
   float getTime() const { return time; }
+
+  vector<Light>& getLights() { return lights; }
 };

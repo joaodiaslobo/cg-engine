@@ -182,6 +182,19 @@ bool Engine::initializeFromFile(const string& filename) {
     }
   }
 
+  // Setup lights
+  for (int i = 0; i < 8; ++i) {
+    glLightf(GL_LIGHT0 + i, GL_SPOT_CUTOFF, 180);
+    glDisable(GL_LIGHT0 + i);
+  }
+
+  for (size_t i = 0; i < scene.getLights().size(); i++) {
+    glEnable(GL_LIGHT0 + i);
+    constexpr float white[4] = {1.0, 1.0, 1.0, 1.0};
+    glLightfv(GL_LIGHT0 + i, GL_DIFFUSE, white);
+    glLightfv(GL_LIGHT0 + i, GL_SPECULAR, white);
+  }
+
   tinyxml2::XMLElement* rootGroupElement = root->FirstChildElement("group");
 
   if (rootGroupElement == nullptr) {
@@ -318,7 +331,8 @@ void Engine::setupProjectionAndView() {
  *
  * The axes extend from -1000 to 1000 units in their respective directions.
  */
-void renderSceneAxis() {
+void Engine::renderSceneAxis() {
+  disableLightRendering();
   glBegin(GL_LINES);
 
   // x-axis
@@ -339,6 +353,7 @@ void renderSceneAxis() {
   glColor3f(1.0, 1.0, 1.0);
 
   glEnd();
+  maybeEnableLightRendering();
 }
 
 /**
@@ -354,6 +369,10 @@ void Engine::render() {
   glLoadIdentity();
 
   camera.render();
+
+  if (settings.getViewmode() == SHADED) {
+    renderLights();
+  }
 
   scene.render(settings.getShowNormals());
 
@@ -378,6 +397,28 @@ void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height) {
   engine->getWindow()->setWindowSize(width, height);
 
   engine->setupProjectionAndView();
+}
+
+/**
+ * @brief Disables light rendering in the OpenGL context.
+ *
+ * This function disables the lighting feature in OpenGL, which is useful when
+ * rendering in wireframe or flat shading modes where lighting is not needed.
+ */
+void Engine::disableLightRendering() { glDisable(GL_LIGHTING); }
+
+/**
+ * @brief Enables light rendering in the OpenGL context if the current view mode
+ * is SHADED.
+ *
+ * This function enables the lighting feature in OpenGL, which is necessary for
+ * rendering objects with shading. It checks the current view mode and only
+ * enables lighting if the mode is set to SHADED.
+ */
+void Engine::maybeEnableLightRendering() {
+  if (settings.getViewmode() == SHADED) {
+    glEnable(GL_LIGHTING);
+  }
 }
 
 /**
@@ -427,11 +468,22 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
   } else if (key == GLFW_KEY_N && action == GLFW_PRESS) {
     engine->getSettings()->toggleNormals();
   } else if (key == GLFW_KEY_P && action == GLFW_PRESS) {
-    engine->getSettings()->toggleWireframe();
-    if (engine->getSettings()->getShowWireframe()) {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    } else {
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    engine->getSettings()->toggleViewmode();
+    switch (engine->getSettings()->getViewmode()) {
+      case WIREFRAME:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glDisable(GL_LIGHTING);
+        break;
+      case FLAT:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glDisable(GL_LIGHTING);
+        break;
+      case SHADED:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glEnable(GL_LIGHTING);
+        break;
+      default:
+        break;
     }
   }
 
@@ -457,4 +509,20 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 void glfwErrorCallback(const int error, const char* description) {
   logger.error("GLFW Error: " + std::to_string(error) + ": " +
                std::string(description));
+}
+
+/**
+ * @brief Renders all lights in the scene.
+ *
+ * This function iterates through all lights in the scene and calls their
+ * render method to display them in the OpenGL context.
+ */
+void Engine::renderLights() {
+  int lightIndex = 0;
+  disableLightRendering();
+  for (auto& light : scene.getLights()) {
+    light.render(lightIndex);
+    lightIndex++;
+  }
+  maybeEnableLightRendering();
 }
