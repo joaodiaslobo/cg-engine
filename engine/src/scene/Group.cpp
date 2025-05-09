@@ -153,6 +153,64 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
       std::string filename = modelElement->Attribute("file");
       std::optional<Model> loadedModel = loadModel(filename);
       if (loadedModel.has_value()) {
+        // Maybe load material data
+
+        tinyxml2::XMLElement* materialElement =
+            modelElement->FirstChildElement("color");
+
+        if (materialElement != nullptr) {
+          tinyxml2::XMLElement* diffuseElement =
+              materialElement->FirstChildElement("diffuse");
+          tinyxml2::XMLElement* ambientElement =
+              materialElement->FirstChildElement("ambient");
+          tinyxml2::XMLElement* specularElement =
+              materialElement->FirstChildElement("specular");
+          tinyxml2::XMLElement* emissionElement =
+              materialElement->FirstChildElement("emissive");
+          tinyxml2::XMLElement* shininessElement =
+              materialElement->FirstChildElement("shininess");
+
+          Material material;
+          if (diffuseElement != nullptr) {
+            diffuseElement->QueryFloatAttribute("R", &material.diffuse.r);
+            diffuseElement->QueryFloatAttribute("G", &material.diffuse.g);
+            diffuseElement->QueryFloatAttribute("B", &material.diffuse.b);
+            material.diffuse.r /= 255.0f;
+            material.diffuse.g /= 255.0f;
+            material.diffuse.b /= 255.0f;
+          }
+          if (ambientElement != nullptr) {
+            ambientElement->QueryFloatAttribute("R", &material.ambient.r);
+            ambientElement->QueryFloatAttribute("G", &material.ambient.g);
+            ambientElement->QueryFloatAttribute("B", &material.ambient.b);
+            material.ambient.r /= 255.0f;
+            material.ambient.g /= 255.0f;
+            material.ambient.b /= 255.0f;
+          }
+          if (specularElement != nullptr) {
+            specularElement->QueryFloatAttribute("R", &material.specular.r);
+            specularElement->QueryFloatAttribute("G", &material.specular.g);
+            specularElement->QueryFloatAttribute("B", &material.specular.b);
+            material.specular.r /= 255.0f;
+            material.specular.g /= 255.0f;
+            material.specular.b /= 255.0f;
+          }
+          if (emissionElement != nullptr) {
+            emissionElement->QueryFloatAttribute("R", &material.emission.r);
+            emissionElement->QueryFloatAttribute("G", &material.emission.g);
+            emissionElement->QueryFloatAttribute("B", &material.emission.b);
+            material.emission.r /= 255.0f;
+            material.emission.g /= 255.0f;
+            material.emission.b /= 255.0f;
+          }
+          if (shininessElement != nullptr) {
+            shininessElement->QueryFloatAttribute("value", &material.shininess);
+            material.shininess /= 255.0f;
+          }
+
+          loadedModel.value().setMaterial(material);
+        }
+
         loadedModel.value().sendModelToGPU();
         group.addModel(loadedModel.value());
       } else {

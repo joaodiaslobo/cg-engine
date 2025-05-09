@@ -7,9 +7,18 @@
 
 using glm::vec2;
 using glm::vec3;
+using glm::vec4;
 using std::optional;
 using std::string;
 using std::vector;
+
+struct Material {
+  vec3 ambient = vec4(200.0f / 255.0f, 200.0f / 255.0f, 200.0f / 255.0f, 1.0f);
+  vec3 diffuse = vec4(50.0f / 255.0f, 50.0f / 255.0f, 50.0f / 255.0f, 1.0f);
+  vec3 specular = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+  vec3 emission = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+  float shininess = 0.0f;
+};
 
 class Model {
  private:
@@ -25,6 +34,7 @@ class Model {
   uint32_t textureID;
   bool hasTexture;
   bool hasNormals;
+  Material material;
 
  public:
   Model() : hasTexture(false), hasNormals(false), textureID(0){};
@@ -35,6 +45,8 @@ class Model {
   void setName(const string& name) { this->name = name; }
   void render();
   void renderNormals(float scale);
+  void setMaterial(const Material& mat) { material = mat; }
+  Material getMaterial() const { return material; }
   const string& getName() const { return name; }
   void sendModelToGPU();
   bool hasTextureMapping() const { return hasTexture; }

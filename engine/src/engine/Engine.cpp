@@ -25,6 +25,8 @@ bool Engine::initialize() {
 
   ui.initialize(&window);
 
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
   return true;
 }
 
@@ -147,7 +149,7 @@ bool Engine::initializeFromFile(const string& filename) {
         type = LightType::DIRECTIONAL;
       } else if (typeStr == "point") {
         type = LightType::POINT;
-      } else if (typeStr == "spotlight") {
+      } else if (typeStr == "spot") {
         type = LightType::SPOTLIGHT;
       } else {
         logger.error("Unknown light type: " + typeStr);
@@ -158,17 +160,17 @@ bool Engine::initializeFromFile(const string& filename) {
 
       if (type != LightType::DIRECTIONAL) {
         float x, y, z;
-        lightElement->QueryFloatAttribute("posX", &x);
-        lightElement->QueryFloatAttribute("posY", &y);
-        lightElement->QueryFloatAttribute("posZ", &z);
+        lightElement->QueryFloatAttribute("posx", &x);
+        lightElement->QueryFloatAttribute("posy", &y);
+        lightElement->QueryFloatAttribute("posz", &z);
         light.setPosition(glm::vec3(x, y, z));
       }
 
       if (type != LightType::POINT) {
         float x, y, z;
-        lightElement->QueryFloatAttribute("dirX", &x);
-        lightElement->QueryFloatAttribute("dirY", &y);
-        lightElement->QueryFloatAttribute("dirZ", &z);
+        lightElement->QueryFloatAttribute("dirx", &x);
+        lightElement->QueryFloatAttribute("diry", &y);
+        lightElement->QueryFloatAttribute("dirz", &z);
         light.setDirection(glm::vec3(x, y, z));
       }
 
@@ -206,6 +208,8 @@ bool Engine::initializeFromFile(const string& filename) {
   ui.initialize(&window);
 
   setupProjectionAndView();
+
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   return true;
 }
@@ -314,8 +318,6 @@ void Engine::setupProjectionAndView() {
   glViewport(0, 0, window.width, window.height);
   gluPerspective(camera.getFov(), aspectRatio, camera.getNear(),
                  camera.getFar());
-
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   glMatrixMode(GL_MODELVIEW);
 }

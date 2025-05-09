@@ -336,6 +336,12 @@ void Model::renderNormals(float scale) {
  * issues a draw call to render the model.
  */
 void Model::render() {
+  glMaterialfv(GL_FRONT, GL_AMBIENT, &material.ambient.x);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, &material.diffuse.x);
+  glMaterialfv(GL_FRONT, GL_SPECULAR, &material.specular.x);
+  glMaterialfv(GL_FRONT, GL_EMISSION, &material.emission.x);
+  glMaterialf(GL_FRONT, GL_SHININESS, material.shininess);
+
   // Enable client states
   glEnableClientState(GL_VERTEX_ARRAY);
 
@@ -364,7 +370,6 @@ void Model::render() {
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
   glDrawElements(GL_TRIANGLES, indexes.size(), GL_UNSIGNED_INT, 0);
 
-  // Disable client states
   glDisableClientState(GL_VERTEX_ARRAY);
 
   if (hasNormals) {
