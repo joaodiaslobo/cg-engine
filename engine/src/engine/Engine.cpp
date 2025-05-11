@@ -376,7 +376,7 @@ void Engine::render() {
     renderLights();
   }
 
-  scene.render(settings.getShowNormals());
+  scene.render(settings.getViewmode(), settings.getShowNormals());
 
   renderSceneAxis();
 

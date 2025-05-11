@@ -5,6 +5,7 @@
 
 #include "Group.hpp"
 #include "Light.hpp"
+#include "engine/Settings.hpp"
 
 struct Scene {
  private:
@@ -13,7 +14,7 @@ struct Scene {
   float time = 0.0f;
 
  public:
-  void render(bool showNormals);
+  void render(ViewMode viewMode, bool showNormals);
 
   void setRoot(Group&& root) { this->root = std::move(root); }
 

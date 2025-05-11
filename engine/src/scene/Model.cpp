@@ -8,6 +8,10 @@
 #include <optional>
 #include <sstream>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#include "Settings.hpp"
 #include "debug/Logger.hpp"
 
 using std::optional;
@@ -173,14 +177,42 @@ optional<Model> loadModel(const string& filename) {
   model.setName(filename);
   file.close();
 
-  // Check if texture file exists with same name but .png extension
-  // string texturePath = filename.substr(0, filename.find_last_of('.')) +
-  // ".png"; model.loadTexture(texturePath);
-
-  // Send the model data to the GPU
   model.sendModelToGPU();
 
   return model;
+}
+
+optional<Texture> loadTexture(const std::string& file_path) {
+  stbi_set_flip_vertically_on_load(true);
+  int width, height, channels;
+  uint8_t* data = stbi_load(file_path.c_str(), &width, &height, &channels, 4);
+
+  if (!data) {
+    if (stbi_failure_reason()) std::cout << stbi_failure_reason();
+    return std::nullopt;
+  }
+
+  const uint32_t image_width = static_cast<uint32_t>(width);
+  const uint32_t image_height = static_cast<uint32_t>(height);
+
+  return {Texture{file_path, image_width, image_height,
+                  std::unique_ptr<uint8_t>(data)}};
+}
+
+void Model::sendTextureToGPU(Texture& texture) {
+  logger.info("Loading texture: " + texture.GetName());
+  glGenTextures(1, &textureBuffer);
+  glBindTexture(GL_TEXTURE_2D, textureBuffer);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texture.GetWidth(),
+               texture.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE,
+               texture.GetTextureData().get());
+  glGenerateMipmap(GL_TEXTURE_2D);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  hasTexture = true;
 }
 
 /**
@@ -227,56 +259,6 @@ void Model::addNormal(vec3 normal) { normals.push_back(normal); }
 void Model::addTexCoord(vec2 texCoord) { texCoords.push_back(texCoord); }
 
 void Model::addIndex(uint32_t index) { indexes.push_back(index); }
-
-/**
- * @brief Loads a texture from a file.
- *
- * This function loads a texture from the specified file and generates an OpenGL
- * texture ID for it.
- *
- * @param filename The path to the texture file.
- * @return True if the texture was loaded successfully, false otherwise.
- */
-
-/*
-bool Model::loadTexture(const string& filename) {
-  int width, height, channels;
-  unsigned char* image = SOIL_load_image(filename.c_str(), &width, &height,
-&channels, SOIL_LOAD_RGBA);
-
-  if (!image) {
-    logger.warning("Failed to load texture: " + filename);
-    return false;
-  }
-
-  // Generate a texture ID
-  glGenTextures(1, &textureID);
-
-  // Bind the texture
-  glBindTexture(GL_TEXTURE_2D, textureID);
-
-  // Set texture parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-GL_LINEAR_MIPMAP_LINEAR); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-GL_LINEAR);
-
-  // Upload the texture data
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
-GL_UNSIGNED_BYTE, image);
-
-  // Generate mipmaps
-  glGenerateMipmap(GL_TEXTURE_2D);
-
-  // Free the image data
-  SOIL_free_image_data(image);
-
-  hasTexture = true;
-  logger.info("Loaded texture: " + filename);
-  return true;
-}
-*/
 
 /**
  * @brief Renders the normals of the model as lines.
@@ -335,7 +317,7 @@ void Model::renderNormals(float scale) {
  * This function binds the vertex, normal, and texture coordinate buffers and
  * issues a draw call to render the model.
  */
-void Model::render() {
+void Model::render(ViewMode viewMode) {
   glMaterialfv(GL_FRONT, GL_AMBIENT, &material.ambient.x);
   glMaterialfv(GL_FRONT, GL_DIFFUSE, &material.diffuse.x);
   glMaterialfv(GL_FRONT, GL_SPECULAR, &material.specular.x);
@@ -357,13 +339,13 @@ void Model::render() {
   }
 
   // If we have a texture, bind it
-  if (hasTexture && !texCoords.empty()) {
+  if (hasTexture && !texCoords.empty() && viewMode != WIREFRAME) {
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glBindBuffer(GL_ARRAY_BUFFER, texCoordBuffer);
     glTexCoordPointer(2, GL_FLOAT, 0, 0);
 
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, textureID);
+    glBindTexture(GL_TEXTURE_2D, textureBuffer);
   }
 
   // Bind index buffer and draw

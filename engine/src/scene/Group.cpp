@@ -15,20 +15,20 @@ static debug::Logger logger;
  * their render function. It then iterates through all child groups and calls
  * their render function recursively.
  */
-void Group::render(float time, bool renderNormals) {
+void Group::render(float time, bool renderNormals, ViewMode viewMode) {
   glPushMatrix();
 
   applyTransformations(transformations, time);
 
   for (Model& model : models) {
-    model.render();
+    model.render(viewMode);
     if (renderNormals) {
       model.renderNormals(2.0f);
     }
   }
 
   for (Group& group : children) {
-    group.render(time, renderNormals);
+    group.render(time, renderNormals, viewMode);
   }
 
   glPopMatrix();
@@ -212,6 +212,22 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
         }
 
         loadedModel.value().sendModelToGPU();
+
+        // Maybe load texture data
+
+        tinyxml2::XMLElement* textureElement =
+            modelElement->FirstChildElement("texture");
+        if (textureElement != nullptr) {
+          std::string texturePath = textureElement->Attribute("file");
+          std::optional<Texture> loadedTexture = loadTexture(texturePath);
+          if (loadedTexture.has_value()) {
+            loadedModel.value().sendTextureToGPU(loadedTexture.value());
+          } else {
+            logger.error("Failed to load texture from file: " + texturePath +
+                         ".");
+          }
+        }
+
         group.addModel(loadedModel.value());
       } else {
         logger.error("Failed to load model from file: " + filename + ".");

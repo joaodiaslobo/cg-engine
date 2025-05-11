@@ -12,8 +12,8 @@
 #include "../ui/UI.hpp"
 #include "../window/Camera.hpp"
 #include "../window/Window.hpp"
+#include "Settings.hpp"
 #include "debug/Logger.hpp"
-#include "settings.hpp"
 
 class Engine {
  private:

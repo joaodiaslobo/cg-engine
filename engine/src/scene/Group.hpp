@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "Model.hpp"
+#include "engine/Settings.hpp"
 #include "math/Transformation.hpp"
 
 using std::unique_ptr;
@@ -26,7 +27,7 @@ class Group {
   Group(Group&&) = default;
   Group& operator=(Group&&) = default;
 
-  void render(float time, bool renderNormals);
+  void render(float time, bool renderNormals, ViewMode viewMode);
   void setName(string name) { this->name = name; }
   string getName() const { return name; }
   void addChild(Group child) { children.push_back(std::move(child)); }
