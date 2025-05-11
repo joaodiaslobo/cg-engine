@@ -278,6 +278,10 @@ void Engine::run() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glEnableClientState(GL_VERTEX_ARRAY);
+  glEnable(GL_RESCALE_NORMAL);
+
+  constexpr float amb[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
 
   double lastTime = glfwGetTime();
 
