@@ -18,11 +18,61 @@ void LoadIconFont(ImGuiIO& io) {
                                &config, icon_ranges);
 }
 
-void DrawGroupTree(const Group& group, const std::string& name, NodeType type) {
+void UI::DrawGroupTree(const Group& group, const std::string& name,
+                       NodeType type) {
   if (SceneTreeNode(name.c_str(), type, true, type == NodeType::WORLD)) {
     if (type == NodeType::WORLD) {
       // If this is the world node, add the camera
       SceneTreeNode("Camera", NodeType::CAMERA, false, false);
+
+      Engine* engine = static_cast<Engine*>(
+          glfwGetWindowUserPointer(window->getGlfwWindow()));
+      if (engine) {
+        Scene* scene = engine->getScene();
+        if (scene) {
+          // Maybe add lights
+          if (!scene->getLights().empty()) {
+            if (SceneTreeNode("Lights", NodeType::LIGHTS, true, false)) {
+              int pointCount = 0, dirCount = 0, spotCount = 0;
+
+              for (auto& light : scene->getLights()) {
+                std::string label;
+                NodeType nodeType;
+
+                switch (light.getType()) {
+                  case LightType::DIRECTIONAL:
+                    label = dirCount++ == 0
+                                ? "Directional Light"
+                                : "Directional Light (" +
+                                      std::to_string(dirCount) + ")";
+                    nodeType = NodeType::LIGHT_DIRECTIONAL;
+                    break;
+                  case LightType::POINT:
+                    label = pointCount++ == 0
+                                ? "Point Light"
+                                : "Point Light (" + std::to_string(pointCount) +
+                                      ")";
+                    nodeType = NodeType::LIGHT_POINT;
+                    break;
+                  case LightType::SPOTLIGHT:
+                    label =
+                        spotCount++ == 0
+                            ? "Spot Light"
+                            : "Spot Light (" + std::to_string(spotCount) + ")";
+                    nodeType = NodeType::LIGHT_SPOT;
+                    break;
+                  default:
+                    continue;
+                }
+
+                SceneTreeNode(label.c_str(), nodeType, false, false);
+              }
+
+              ImGui::TreePop();
+            }
+          }
+        }
+      }
     }
 
     for (auto& child : group.getChildren()) {
@@ -150,10 +200,14 @@ bool SceneTreeNode(const char* label, NodeType type, bool hasChildren,
         ImGui::GetColorU32(held ? ImGuiCol_HeaderActive
                                 : ImGuiCol_HeaderHovered));
 
-  const char* icon = (type == NodeType::WORLD)   ? ICON_FA_WORLD
-                     : (type == NodeType::MODEL) ? ICON_FA_CUBE
-                     : (type == NodeType::CAMERA)
-                         ? ICON_FA_CAMERA
+  const char* icon = (type == NodeType::WORLD)               ? ICON_FA_WORLD
+                     : (type == NodeType::MODEL)             ? ICON_FA_CUBE
+                     : (type == NodeType::CAMERA)            ? ICON_FA_CAMERA
+                     : (type == NodeType::LIGHTS)            ? ICON_FA_LIGHTBULB
+                     : (type == NodeType::LIGHT_DIRECTIONAL) ? ICON_FA_SUN
+                     : (type == NodeType::LIGHT_POINT)       ? ICON_FA_LIGHTBULB
+                     : (type == NodeType::LIGHT_SPOT)
+                         ? ICON_FA_SPOTLIGHT
                          : (opened ? ICON_FA_FOLDER_OPEN : ICON_FA_FOLDER);
 
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 0.0f));

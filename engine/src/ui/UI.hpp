@@ -6,6 +6,7 @@
 #include <imgui_internal.h>
 #include <tinyfiledialogs/tinyfiledialogs.h>
 
+#include "../scene/Scene.hpp"
 #include "../window/Window.hpp"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -17,8 +18,20 @@
 #define ICON_FA_CAMERA ""
 #define ICON_FA_FOLDER "\xef\x81\xbb"
 #define ICON_FA_FOLDER_OPEN "\xef\x81\xbc"
+#define ICON_FA_LIGHTBULB ""
+#define ICON_FA_SUN ""
+#define ICON_FA_SPOTLIGHT ""
 
-enum class NodeType { WORLD, CAMERA, GROUP, MODEL };
+enum class NodeType {
+  WORLD,
+  CAMERA,
+  GROUP,
+  MODEL,
+  LIGHTS,
+  LIGHT_DIRECTIONAL,
+  LIGHT_POINT,
+  LIGHT_SPOT
+};
 
 class UI {
  public:
@@ -36,6 +49,8 @@ class UI {
   void postRender();
   void shutdown();
   void setFPS(float fps) { this->fps = fps; }
+  void DrawGroupTree(const Group& group, const std::string& name,
+                     NodeType type);
 };
 
 void LoadMainFont(ImGuiIO& io);

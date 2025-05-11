@@ -12,8 +12,8 @@
 #include "../ui/UI.hpp"
 #include "../window/Camera.hpp"
 #include "../window/Window.hpp"
+#include "Settings.hpp"
 #include "debug/Logger.hpp"
-#include "settings.hpp"
 
 class Engine {
  private:
@@ -21,6 +21,7 @@ class Engine {
   Scene scene;
   Camera camera;
   UI ui;
+  Settings settings;
 
  public:
   bool initialize();
@@ -34,6 +35,11 @@ class Engine {
   Camera* getCamera() { return &camera; }
   Scene* getScene() { return &scene; }
   UI* getUI() { return &ui; }
+  Settings* getSettings() { return &settings; }
+  void disableLightRendering();
+  void maybeEnableLightRendering();
+  void renderSceneAxis();
+  void renderLights();
 };
 
 void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height);

@@ -13,6 +13,7 @@
         "docking-experimental"
       ]
     },
-    "tinyfiledialogs"
+    "tinyfiledialogs",
+    "stb"
   ]
 }

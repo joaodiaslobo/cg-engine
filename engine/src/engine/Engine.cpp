@@ -25,6 +25,8 @@ bool Engine::initialize() {
 
   ui.initialize(&window);
 
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
   return true;
 }
 
@@ -129,18 +131,94 @@ bool Engine::initializeFromFile(const string& filename) {
 
   // Scene
 
+  // Lights
+
+  tinyxml2::XMLElement* lightsElement = root->FirstChildElement("lights");
+
+  if (lightsElement != nullptr) {
+    for (tinyxml2::XMLElement* lightElement =
+             lightsElement->FirstChildElement("light");
+         lightElement != nullptr;
+         lightElement = lightElement->NextSiblingElement("light")) {
+      Light light;
+
+      LightType type;
+      std::string typeStr = lightElement->Attribute("type");
+
+      if (typeStr == "directional") {
+        type = LightType::DIRECTIONAL;
+      } else if (typeStr == "point") {
+        type = LightType::POINT;
+      } else if (typeStr == "spot") {
+        type = LightType::SPOTLIGHT;
+      } else {
+        logger.error("Unknown light type: " + typeStr);
+        continue;
+      }
+
+      light.setType(type);
+
+      if (type != LightType::DIRECTIONAL) {
+        float x, y, z;
+        lightElement->QueryFloatAttribute("posx", &x);
+        lightElement->QueryFloatAttribute("posy", &y);
+        lightElement->QueryFloatAttribute("posz", &z);
+        light.setPosition(glm::vec3(x, y, z));
+      }
+
+      if (type != LightType::POINT) {
+        float x, y, z;
+        lightElement->QueryFloatAttribute("dirx", &x);
+        lightElement->QueryFloatAttribute("diry", &y);
+        lightElement->QueryFloatAttribute("dirz", &z);
+        light.setDirection(glm::vec3(x, y, z));
+      }
+
+      if (type == LightType::SPOTLIGHT) {
+        float cutoff;
+        lightElement->QueryFloatAttribute("cutoff", &cutoff);
+        light.setCutoff(cutoff);
+      }
+
+      tinyxml2::XMLElement* colorElement =
+          lightElement->FirstChildElement("color");
+      if (colorElement != nullptr) {
+        float r, g, b;
+        colorElement->QueryFloatAttribute("R", &r);
+        colorElement->QueryFloatAttribute("G", &g);
+        colorElement->QueryFloatAttribute("B", &b);
+        r /= 255.0f;
+        g /= 255.0f;
+        b /= 255.0f;
+        light.setColor(glm::vec3(r, g, b));
+      } else {
+        // Set default color
+        light.setColor(glm::vec3(1.0f, 1.0f, 1.0f));
+      }
+
+      scene.addLight(light);
+    }
+  }
+
+  // Setup lights
+  for (int i = 0; i < 8; ++i) {
+    glLightf(GL_LIGHT0 + i, GL_SPOT_CUTOFF, 180);
+    glDisable(GL_LIGHT0 + i);
+  }
+
   tinyxml2::XMLElement* rootGroupElement = root->FirstChildElement("group");
 
   if (rootGroupElement == nullptr) {
     logger.error("Failed to find root group element in file: " + filename);
     return false;
   }
-
   scene.setRoot(initializeGroupFromXML(rootGroupElement));
 
   ui.initialize(&window);
 
   setupProjectionAndView();
+
+  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   return true;
 }
@@ -209,6 +287,10 @@ void Engine::run() {
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
   glEnableClientState(GL_VERTEX_ARRAY);
+  glEnable(GL_RESCALE_NORMAL);
+
+  constexpr float amb[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, amb);
 
   double lastTime = glfwGetTime();
 
@@ -250,8 +332,6 @@ void Engine::setupProjectionAndView() {
   gluPerspective(camera.getFov(), aspectRatio, camera.getNear(),
                  camera.getFar());
 
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
   glMatrixMode(GL_MODELVIEW);
 }
 
@@ -266,7 +346,8 @@ void Engine::setupProjectionAndView() {
  *
  * The axes extend from -1000 to 1000 units in their respective directions.
  */
-void renderSceneAxis() {
+void Engine::renderSceneAxis() {
+  disableLightRendering();
   glBegin(GL_LINES);
 
   // x-axis
@@ -287,6 +368,7 @@ void renderSceneAxis() {
   glColor3f(1.0, 1.0, 1.0);
 
   glEnd();
+  maybeEnableLightRendering();
 }
 
 /**
@@ -303,7 +385,11 @@ void Engine::render() {
 
   camera.render();
 
-  scene.render();
+  if (settings.getViewmode() == SHADED) {
+    renderLights();
+  }
+
+  scene.render(settings.getViewmode(), settings.getShowNormals());
 
   renderSceneAxis();
 
@@ -326,6 +412,28 @@ void windowSizeUpdatedCallback(GLFWwindow* window, int width, int height) {
   engine->getWindow()->setWindowSize(width, height);
 
   engine->setupProjectionAndView();
+}
+
+/**
+ * @brief Disables light rendering in the OpenGL context.
+ *
+ * This function disables the lighting feature in OpenGL, which is useful when
+ * rendering in wireframe or flat shading modes where lighting is not needed.
+ */
+void Engine::disableLightRendering() { glDisable(GL_LIGHTING); }
+
+/**
+ * @brief Enables light rendering in the OpenGL context if the current view mode
+ * is SHADED.
+ *
+ * This function enables the lighting feature in OpenGL, which is necessary for
+ * rendering objects with shading. It checks the current view mode and only
+ * enables lighting if the mode is set to SHADED.
+ */
+void Engine::maybeEnableLightRendering() {
+  if (settings.getViewmode() == SHADED) {
+    glEnable(GL_LIGHTING);
+  }
 }
 
 /**
@@ -372,6 +480,26 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action,
     engine->getUI()->toggleUI();
   } else if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GLFW_TRUE);
+  } else if (key == GLFW_KEY_N && action == GLFW_PRESS) {
+    engine->getSettings()->toggleNormals();
+  } else if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+    engine->getSettings()->toggleViewmode();
+    switch (engine->getSettings()->getViewmode()) {
+      case WIREFRAME:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glDisable(GL_LIGHTING);
+        break;
+      case FLAT:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glDisable(GL_LIGHTING);
+        break;
+      case SHADED:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        glEnable(GL_LIGHTING);
+        break;
+      default:
+        break;
+    }
   }
 
   engine->getCamera()->processKeyboard(key, action);
@@ -396,4 +524,20 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
 void glfwErrorCallback(const int error, const char* description) {
   logger.error("GLFW Error: " + std::to_string(error) + ": " +
                std::string(description));
+}
+
+/**
+ * @brief Renders all lights in the scene.
+ *
+ * This function iterates through all lights in the scene and calls their
+ * render method to display them in the OpenGL context.
+ */
+void Engine::renderLights() {
+  int lightIndex = 0;
+  disableLightRendering();
+  for (auto& light : scene.getLights()) {
+    light.render(lightIndex);
+    lightIndex++;
+  }
+  maybeEnableLightRendering();
 }
