@@ -27,6 +27,8 @@ void Light::render(int lightIndex) {
   glm::vec4 pos = glm::vec4(position, 1.0f);
 
   glEnable(GL_LIGHT0 + lightIndex);
+  glLightfv(GL_LIGHT0 + lightIndex, GL_DIFFUSE, &color.x);
+  glLightfv(GL_LIGHT0 + lightIndex, GL_SPECULAR, &color.x);
 
   switch (type) {
     case DIRECTIONAL:

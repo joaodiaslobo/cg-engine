@@ -180,6 +180,22 @@ bool Engine::initializeFromFile(const string& filename) {
         light.setCutoff(cutoff);
       }
 
+      tinyxml2::XMLElement* colorElement =
+          lightElement->FirstChildElement("color");
+      if (colorElement != nullptr) {
+        float r, g, b;
+        colorElement->QueryFloatAttribute("R", &r);
+        colorElement->QueryFloatAttribute("G", &g);
+        colorElement->QueryFloatAttribute("B", &b);
+        r /= 255.0f;
+        g /= 255.0f;
+        b /= 255.0f;
+        light.setColor(glm::vec3(r, g, b));
+      } else {
+        // Set default color
+        light.setColor(glm::vec3(1.0f, 1.0f, 1.0f));
+      }
+
       scene.addLight(light);
     }
   }
@@ -188,13 +204,6 @@ bool Engine::initializeFromFile(const string& filename) {
   for (int i = 0; i < 8; ++i) {
     glLightf(GL_LIGHT0 + i, GL_SPOT_CUTOFF, 180);
     glDisable(GL_LIGHT0 + i);
-  }
-
-  for (size_t i = 0; i < scene.getLights().size(); i++) {
-    glEnable(GL_LIGHT0 + i);
-    constexpr float white[4] = {1.0, 1.0, 1.0, 1.0};
-    glLightfv(GL_LIGHT0 + i, GL_DIFFUSE, white);
-    glLightfv(GL_LIGHT0 + i, GL_SPECULAR, white);
   }
 
   tinyxml2::XMLElement* rootGroupElement = root->FirstChildElement("group");
