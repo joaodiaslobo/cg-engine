@@ -267,7 +267,7 @@ void Model::addIndex(uint32_t index) { indexes.push_back(index); }
  * vertex in the direction of its normal. This is useful for debugging to ensure
  * normals are loaded and calculated correctly.
  *
- * @param scale The length of the normal lines (default: 0.1).
+ * @param scale The length of the normal lines.
  */
 void Model::renderNormals(float scale) {
   if (!hasNormals || normals.empty() || vertices.empty()) {

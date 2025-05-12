@@ -23,7 +23,7 @@ void Group::render(float time, bool renderNormals, ViewMode viewMode) {
   for (Model& model : models) {
     model.render(viewMode);
     if (renderNormals) {
-      model.renderNormals(2.0f);
+      model.renderNormals(0.4f);
     }
   }
 

@@ -204,70 +204,131 @@ Model Plane(float length, int divisions) {
  * @return Model The generated 3D box model containing the vertices.
  */
 Model Box(float size, int divisions) {
+  Model model;
+  AttributeIndexer<glm::vec3> posIdx;
+  AttributeIndexer<glm::vec3> normIdx;
+  AttributeIndexer<glm::vec2> uvIdx;
+
   float halfSize = size / 2.0f;
   float step = size / divisions;
-  VertexIndexer<vec3, Vec3Hash> indexer;
 
-  // VERTICES
+  const glm::vec3 normals[6] = {
+      {0, 0, 1},   // Front
+      {0, 0, -1},  // Back
+      {-1, 0, 0},  // Left
+      {1, 0, 0},   // Right
+      {0, 1, 0},   // Top
+      {0, -1, 0}   // Bottom
+  };
 
-  for (int i = 0; i < divisions; ++i) {
-    for (int j = 0; j < divisions; ++j) {
-      float v1 = -halfSize + i * step;
-      float u1 = -halfSize + j * step;
-      float v2 = v1 + step;
-      float u2 = u1 + step;
+  // For each face of the cube
+  for (int face = 0; face < 6; face++) {
+    unsigned int n = normIdx.add(normals[face]);
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, u1, halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, u2, halfSize)));
+    for (int i = 0; i < divisions; i++) {
+      for (int j = 0; j < divisions; j++) {
+        float u1 = -halfSize + i * step;
+        float v1 = -halfSize + j * step;
+        float u2 = u1 + step;
+        float v2 = v1 + step;
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, u2, halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, u2, halfSize)));
+        float tu1 = (float)i / divisions;
+        float tv1 = (float)j / divisions;
+        float tu2 = (float)(i + 1) / divisions;
+        float tv2 = (float)(j + 1) / divisions;
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, u1, -halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, u2, -halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, -halfSize)));
+        glm::vec3 p[4];
+        glm::vec2 uv[4];
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, u2, -halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, -halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, -halfSize)));
+        uv[0] = {tu1, tv1};
+        uv[1] = {tu2, tv1};
+        uv[2] = {tu1, tv2};
+        uv[3] = {tu2, tv2};
 
-      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v1, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v1, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v2, u1)));
+        switch (face) {
+          case 0:  // Front face
+            p[0] = {u1, v1, halfSize};
+            p[1] = {u2, v1, halfSize};
+            p[2] = {u1, v2, halfSize};
+            p[3] = {u2, v2, halfSize};
+            break;
+          case 1:  // Back face
+            p[0] = {u2, v1, -halfSize};
+            p[1] = {u1, v1, -halfSize};
+            p[2] = {u2, v2, -halfSize};
+            p[3] = {u1, v2, -halfSize};
 
-      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v1, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v2, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v2, u1)));
+            uv[0] = {tu2, tv1};
+            uv[1] = {tu1, tv1};
+            uv[2] = {tu2, tv2};
+            uv[3] = {tu1, tv2};
+            break;
+          case 2:  // Left face
+            p[0] = {-halfSize, v1, u1};
+            p[1] = {-halfSize, v1, u2};
+            p[2] = {-halfSize, v2, u1};
+            p[3] = {-halfSize, v2, u2};
 
-      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v1, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v2, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v1, u2)));
+            uv[0] = {1.0f - tu1, tv1};
+            uv[1] = {1.0f - tu2, tv1};
+            uv[2] = {1.0f - tu1, tv2};
+            uv[3] = {1.0f - tu2, tv2};
+            break;
+          case 3:  // Right face
+            p[0] = {halfSize, v1, u2};
+            p[1] = {halfSize, v1, u1};
+            p[2] = {halfSize, v2, u2};
+            p[3] = {halfSize, v2, u1};
 
-      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v1, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v2, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v2, u2)));
+            uv[0] = {tu2, tv1};
+            uv[1] = {tu1, tv1};
+            uv[2] = {tu2, tv2};
+            uv[3] = {tu1, tv2};
+            break;
+          case 4:  // Top face
+            p[0] = {u1, halfSize, v2};
+            p[1] = {u2, halfSize, v2};
+            p[2] = {u1, halfSize, v1};
+            p[3] = {u2, halfSize, v1};
+            break;
+          case 5:  // Bottom face
+            p[0] = {u1, -halfSize, v1};
+            p[1] = {u2, -halfSize, v1};
+            p[2] = {u1, -halfSize, v2};
+            p[3] = {u2, -halfSize, v2};
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, halfSize, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, halfSize, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, halfSize, u1)));
+            uv[0] = {tu1, tv2};
+            uv[1] = {tu2, tv2};
+            uv[2] = {tu1, tv1};
+            uv[3] = {tu2, tv1};
+            break;
+        }
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, halfSize, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, halfSize, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, halfSize, u1)));
+        unsigned int i0 = posIdx.add(p[0]);
+        unsigned int i1 = posIdx.add(p[1]);
+        unsigned int i2 = posIdx.add(p[2]);
+        unsigned int i3 = posIdx.add(p[3]);
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, -halfSize, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, -halfSize, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, -halfSize, u2)));
+        unsigned int t0 = uvIdx.add(uv[0]);
+        unsigned int t1 = uvIdx.add(uv[1]);
+        unsigned int t2 = uvIdx.add(uv[2]);
+        unsigned int t3 = uvIdx.add(uv[3]);
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, -halfSize, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, -halfSize, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, -halfSize, u2)));
+        model.indices.push_back({i0, t0, n});
+        model.indices.push_back({i1, t1, n});
+        model.indices.push_back({i2, t2, n});
+
+        model.indices.push_back({i2, t2, n});
+        model.indices.push_back({i1, t1, n});
+        model.indices.push_back({i3, t3, n});
+      }
     }
   }
 
-  return Model{};
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+  return model;
 }
 
 /**
