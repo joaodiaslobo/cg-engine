@@ -8,7 +8,9 @@
     </camera>
 	<group> 
   		<models> 
-			<model file="models/icosphere.3d" /> <!-- generator icosphere 1 4 icosphere.3d -->
- 		</models>
+			<model file="models/icosphere_1_4.3d"> <!-- generator icosphere 1 4 icosphere_1_4.3d -->
+				<texture file="textures/sun.jpg" />
+			</model>
+		</models>
  	</group>
 </world>
