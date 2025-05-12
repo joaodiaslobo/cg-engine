@@ -428,59 +428,118 @@ Model Box(float size, int divisions) {
  * @return A Model object containing the vertices of the cylinder.
  */
 Model Cylinder(float radius, float height, int slices, int stacks) {
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
+  AttributeIndexer<glm::vec3> posIdx;
+  AttributeIndexer<glm::vec3> normIdx;
+  AttributeIndexer<glm::vec2> uvIdx;
 
   float sliceSize = 2 * M_PI / slices;
+  float stackSize = height / stacks;
   float halfHeight = height / 2.0f;
 
-  vec3 baseMiddle = vec3(0, -halfHeight, 0);
-  vec3 topMiddle = vec3(0, halfHeight, 0);
-
-  // SIDE FACES
+  // Sides
   for (int slice = 0; slice < slices; slice++) {
     float angle1 = slice * sliceSize;
     float angle2 = (slice + 1) * sliceSize;
-    float stackSize = height / stacks;
+
+    glm::vec3 normal1 = glm::normalize(glm::vec3(cos(angle1), 0, sin(angle1)));
+    glm::vec3 normal2 = glm::normalize(glm::vec3(cos(angle2), 0, sin(angle2)));
+
+    float u0 = (float)slice / slices;
+    float u1 = (float)(slice + 1) / slices;
 
     for (int stack = 0; stack < stacks; stack++) {
-      float currentHeight = stack * stackSize - halfHeight;
-      float nextHeight = (stack + 1) * stackSize - halfHeight;
+      float y0 = stack * stackSize - halfHeight;
+      float y1 = (stack + 1) * stackSize - halfHeight;
+      float v0 = (float)stack / stacks;
+      float v1 = (float)(stack + 1) / stacks;
 
-      vec3 bottomLeft = polarToCartesian(radius, angle1, currentHeight);
-      vec3 bottomRight = polarToCartesian(radius, angle2, currentHeight);
-      vec3 topLeft = polarToCartesian(radius, angle1, nextHeight);
-      vec3 topRight = polarToCartesian(radius, angle2, nextHeight);
+      glm::vec3 bl = glm::vec3(radius * cos(angle1), y0, radius * sin(angle1));
+      glm::vec3 br = glm::vec3(radius * cos(angle2), y0, radius * sin(angle2));
+      glm::vec3 tl = glm::vec3(radius * cos(angle1), y1, radius * sin(angle1));
+      glm::vec3 tr = glm::vec3(radius * cos(angle2), y1, radius * sin(angle2));
 
-      indexer.indices.push_back(indexer.addVertex(bottomLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
-      indexer.indices.push_back(indexer.addVertex(topLeft));
+      unsigned int i0 = posIdx.add(bl);
+      unsigned int i1 = posIdx.add(br);
+      unsigned int i2 = posIdx.add(tl);
+      unsigned int i3 = posIdx.add(tr);
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
-      indexer.indices.push_back(indexer.addVertex(topRight));
+      unsigned int n0 = normIdx.add(normal1);
+      unsigned int n1 = normIdx.add(normal2);
+      unsigned int n2 = normIdx.add(normal1);
+      unsigned int n3 = normIdx.add(normal2);
+
+      unsigned int t0 = uvIdx.add({u0, v0});
+      unsigned int t1 = uvIdx.add({u1, v0});
+      unsigned int t2 = uvIdx.add({u0, v1});
+      unsigned int t3 = uvIdx.add({u1, v1});
+
+      model.indices.push_back({i0, t0, n0});
+      model.indices.push_back({i2, t2, n2});
+      model.indices.push_back({i1, t1, n1});
+
+      model.indices.push_back({i2, t2, n2});
+      model.indices.push_back({i3, t3, n3});
+      model.indices.push_back({i1, t1, n1});
     }
   }
 
-  // BASES
+  // Base and top
+  glm::vec3 baseCenter = glm::vec3(0, -halfHeight, 0);
+  glm::vec3 topCenter = glm::vec3(0, halfHeight, 0);
+  glm::vec3 baseNormal = glm::vec3(0, -1, 0);
+  glm::vec3 topNormal = glm::vec3(0, 1, 0);
+  unsigned int baseCenterIdx = posIdx.add(baseCenter);
+  unsigned int topCenterIdx = posIdx.add(topCenter);
+  unsigned int baseNormIdx = normIdx.add(baseNormal);
+  unsigned int topNormIdx = normIdx.add(topNormal);
+  unsigned int baseUvIdx = uvIdx.add({0.5f, 0.5f});
+  unsigned int topUvIdx = uvIdx.add({0.5f, 0.5f});
+
   for (int slice = 0; slice < slices; slice++) {
     float angle1 = slice * sliceSize;
     float angle2 = (slice + 1) * sliceSize;
 
-    vec3 baseLeft = polarToCartesian(radius, angle1, -halfHeight);
-    vec3 baseRight = polarToCartesian(radius, angle2, -halfHeight);
-    vec3 topLeft = polarToCartesian(radius, angle1, halfHeight);
-    vec3 topRight = polarToCartesian(radius, angle2, halfHeight);
+    glm::vec3 b1 =
+        glm::vec3(radius * cos(angle1), -halfHeight, radius * sin(angle1));
+    glm::vec3 b2 =
+        glm::vec3(radius * cos(angle2), -halfHeight, radius * sin(angle2));
+    glm::vec3 t1 =
+        glm::vec3(radius * cos(angle1), halfHeight, radius * sin(angle1));
+    glm::vec3 t2 =
+        glm::vec3(radius * cos(angle2), halfHeight, radius * sin(angle2));
 
-    indexer.indices.push_back(indexer.addVertex(baseMiddle));
-    indexer.indices.push_back(indexer.addVertex(baseRight));
-    indexer.indices.push_back(indexer.addVertex(baseLeft));
+    glm::vec2 uv_b1 = {0.5f + 0.5f * cos(angle1), 0.5f + 0.5f * sin(angle1)};
+    glm::vec2 uv_b2 = {0.5f + 0.5f * cos(angle2), 0.5f + 0.5f * sin(angle2)};
+    glm::vec2 uv_t1 = uv_b1;
+    glm::vec2 uv_t2 = uv_b2;
 
-    indexer.indices.push_back(indexer.addVertex(topMiddle));
-    indexer.indices.push_back(indexer.addVertex(topLeft));
-    indexer.indices.push_back(indexer.addVertex(topRight));
+    unsigned int i_b1 = posIdx.add(b1);
+    unsigned int i_b2 = posIdx.add(b2);
+    unsigned int i_t1 = posIdx.add(t1);
+    unsigned int i_t2 = posIdx.add(t2);
+
+    unsigned int t_b1 = uvIdx.add(uv_b1);
+    unsigned int t_b2 = uvIdx.add(uv_b2);
+    unsigned int t_t1 = uvIdx.add(uv_t1);
+    unsigned int t_t2 = uvIdx.add(uv_t2);
+
+    // Base triangle
+    model.indices.push_back({baseCenterIdx, baseUvIdx, baseNormIdx});
+    model.indices.push_back({i_b1, t_b1, baseNormIdx});
+    model.indices.push_back({i_b2, t_b2, baseNormIdx});
+
+    // Top triangle
+    model.indices.push_back({topCenterIdx, topUvIdx, topNormIdx});
+    model.indices.push_back({i_t2, t_t2, topNormIdx});
+    model.indices.push_back({i_t1, t_t1, topNormIdx});
   }
 
-  return {};
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+
+  return model;
 }
 
 /**
