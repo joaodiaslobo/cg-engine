@@ -205,7 +205,6 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
           }
           if (shininessElement != nullptr) {
             shininessElement->QueryFloatAttribute("value", &material.shininess);
-            material.shininess /= 255.0f;
           }
 
           loadedModel.value().setMaterial(material);
@@ -213,8 +212,10 @@ Group initializeGroupFromXML(tinyxml2::XMLElement* element) {
           // Default material
 
           Material material;
-          material.diffuse = vec3(200.0f / 255.0f, 200.0f / 255.0f, 200.0f / 255.0f);
-          material.ambient = vec3(50.0f / 255.0f, 50.0f / 255.0f, 50.0f / 255.0f);
+          material.diffuse =
+              vec3(200.0f / 255.0f, 200.0f / 255.0f, 200.0f / 255.0f);
+          material.ambient =
+              vec3(50.0f / 255.0f, 50.0f / 255.0f, 50.0f / 255.0f);
           material.specular = vec3(0.0f, 0.0f, 0.0f);
           material.emission = vec3(0.0f, 0.0f, 0.0f);
           material.shininess = 0.0f;
