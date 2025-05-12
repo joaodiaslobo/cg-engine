@@ -10,6 +10,7 @@
 #include <glm/vec3.hpp>
 #include <iostream>
 
+using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 using std::vector;
@@ -553,39 +554,81 @@ Model Cylinder(float radius, float height, int slices, int stacks) {
  * @return A Model object containing the vertices of the torus.
  */
 Model Torus(float radius, float tubeRadius, int slices, int stacks) {
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
+  AttributeIndexer<vec3> posIdx;
+  AttributeIndexer<vec3> normIdx;
+  AttributeIndexer<vec2> uvIdx;
 
   for (int stack = 0; stack < stacks; stack++) {
-    float theta1 = 2 * stack * M_PI / stacks;
-    float theta2 = 2 * (stack + 1) * M_PI / stacks;
+    float theta1 = 2.0f * M_PI * stack / stacks;
+    float theta2 = 2.0f * M_PI * (stack + 1) / stacks;
 
     for (int slice = 0; slice < slices; slice++) {
-      float phi1 = 2 * slice * M_PI / slices;
-      float phi2 = 2 * (slice + 1) * M_PI / slices;
+      float phi1 = 2.0f * M_PI * slice / slices;
+      float phi2 = 2.0f * M_PI * (slice + 1) / slices;
 
       vec3 topLeft = vec3((radius + tubeRadius * cos(phi1)) * cos(theta1),
                           tubeRadius * sin(phi1),
                           (radius + tubeRadius * cos(phi1)) * sin(theta1));
+
       vec3 topRight = vec3((radius + tubeRadius * cos(phi1)) * cos(theta2),
                            tubeRadius * sin(phi1),
                            (radius + tubeRadius * cos(phi1)) * sin(theta2));
+
       vec3 bottomLeft = vec3((radius + tubeRadius * cos(phi2)) * cos(theta1),
                              tubeRadius * sin(phi2),
                              (radius + tubeRadius * cos(phi2)) * sin(theta1));
+
       vec3 bottomRight = vec3((radius + tubeRadius * cos(phi2)) * cos(theta2),
                               tubeRadius * sin(phi2),
                               (radius + tubeRadius * cos(phi2)) * sin(theta2));
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      // Normals
+      vec3 center1 = vec3(radius * cos(theta1), 0, radius * sin(theta1));
+      vec3 center2 = vec3(radius * cos(theta2), 0, radius * sin(theta2));
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
-      indexer.indices.push_back(indexer.addVertex(topRight));
+      vec3 n_tl = normalize(topLeft - center1);
+      vec3 n_tr = normalize(topRight - center2);
+      vec3 n_bl = normalize(bottomLeft - center1);
+      vec3 n_br = normalize(bottomRight - center2);
+
+      // UVs
+      vec2 uv_tl = vec2((float)stack / stacks, (float)slice / slices);
+      vec2 uv_tr = vec2((float)(stack + 1) / stacks, (float)slice / slices);
+      vec2 uv_bl = vec2((float)stack / stacks, (float)(slice + 1) / slices);
+      vec2 uv_br =
+          vec2((float)(stack + 1) / stacks, (float)(slice + 1) / slices);
+
+      unsigned int i0 = posIdx.add(topLeft);
+      unsigned int i1 = posIdx.add(bottomLeft);
+      unsigned int i2 = posIdx.add(bottomRight);
+      unsigned int i3 = posIdx.add(topRight);
+
+      unsigned int n0 = normIdx.add(n_tl);
+      unsigned int n1 = normIdx.add(n_bl);
+      unsigned int n2 = normIdx.add(n_br);
+      unsigned int n3 = normIdx.add(n_tr);
+
+      unsigned int t0 = uvIdx.add(uv_tl);
+      unsigned int t1 = uvIdx.add(uv_bl);
+      unsigned int t2 = uvIdx.add(uv_br);
+      unsigned int t3 = uvIdx.add(uv_tr);
+
+      model.indices.push_back({i0, t0, n0});
+      model.indices.push_back({i1, t1, n1});
+      model.indices.push_back({i2, t2, n2});
+
+      model.indices.push_back({i0, t0, n0});
+      model.indices.push_back({i2, t2, n2});
+      model.indices.push_back({i3, t3, n3});
     }
   }
-  return {};
+
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+
+  return model;
 }
 
 /**
