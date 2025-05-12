@@ -148,34 +148,68 @@ Model Cone(float radius, float height, int slices, int stacks) {
  * @return A Model object containing the vertices of the generated sphere.
  */
 Model Sphere(float radius, int slices, int stacks) {
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
+  AttributeIndexer<glm::vec3> posIdx;
+  AttributeIndexer<glm::vec3> normIdx;
+  AttributeIndexer<glm::vec2> uvIdx;
 
   float sliceSize = 2 * M_PI / slices;
   float stackSize = M_PI / stacks;
 
-  // VERTICES
-
   for (int slice = 0; slice < slices; slice++) {
     for (int stack = 0; stack < stacks; stack++) {
-      vec3 bottomLeft = sphericalToCartesian(radius, slice * sliceSize,
-                                             stack * stackSize - M_PI_2);
-      vec3 bottomRight = sphericalToCartesian(radius, (slice + 1) * sliceSize,
-                                              stack * stackSize - M_PI_2);
-      vec3 topLeft = sphericalToCartesian(radius, slice * sliceSize,
-                                          (stack + 1) * stackSize - M_PI_2);
-      vec3 topRight = sphericalToCartesian(radius, (slice + 1) * sliceSize,
-                                           (stack + 1) * stackSize - M_PI_2);
+      glm::vec3 bottomLeft = sphericalToCartesian(radius, slice * sliceSize,
+                                                  stack * stackSize - M_PI_2);
+      glm::vec3 bottomRight = sphericalToCartesian(
+          radius, (slice + 1) * sliceSize, stack * stackSize - M_PI_2);
+      glm::vec3 topLeft = sphericalToCartesian(
+          radius, slice * sliceSize, (stack + 1) * stackSize - M_PI_2);
+      glm::vec3 topRight = sphericalToCartesian(
+          radius, (slice + 1) * sliceSize, (stack + 1) * stackSize - M_PI_2);
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      glm::vec3 normBottomLeft = glm::normalize(bottomLeft);
+      glm::vec3 normBottomRight = glm::normalize(bottomRight);
+      glm::vec3 normTopLeft = glm::normalize(topLeft);
+      glm::vec3 normTopRight = glm::normalize(topRight);
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
-      indexer.indices.push_back(indexer.addVertex(topRight));
+      glm::vec2 uvBottomLeft = {(float)slice / slices, (float)(stack) / stacks};
+      glm::vec2 uvBottomRight = {(float)(slice + 1) / slices,
+                                 (float)(stack) / stacks};
+      glm::vec2 uvTopLeft = {(float)slice / slices,
+                             (float)(stack + 1) / stacks};
+      glm::vec2 uvTopRight = {(float)(slice + 1) / slices,
+                              (float)(stack + 1) / stacks};
+
+      unsigned int i0 = posIdx.add(bottomLeft);
+      unsigned int i1 = posIdx.add(bottomRight);
+      unsigned int i2 = posIdx.add(topLeft);
+      unsigned int i3 = posIdx.add(topRight);
+
+      unsigned int n0 = normIdx.add(normBottomLeft);
+      unsigned int n1 = normIdx.add(normBottomRight);
+      unsigned int n2 = normIdx.add(normTopLeft);
+      unsigned int n3 = normIdx.add(normTopRight);
+
+      unsigned int t0 = uvIdx.add(uvBottomLeft);
+      unsigned int t1 = uvIdx.add(uvBottomRight);
+      unsigned int t2 = uvIdx.add(uvTopLeft);
+      unsigned int t3 = uvIdx.add(uvTopRight);
+
+      model.indices.push_back({i0, t0, n0});
+      model.indices.push_back({i1, t1, n1});
+      model.indices.push_back({i2, t2, n2});
+
+      model.indices.push_back({i2, t2, n2});
+      model.indices.push_back({i1, t1, n1});
+      model.indices.push_back({i3, t3, n3});
     }
   }
-  return {};
+
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+
+  return model;
 }
 
 /**
