@@ -85,7 +85,7 @@ Model Cone(float radius, float height, int slices, int stacks) {
     indexer.indices.push_back(indexer.addVertex(baseBottomLeft));
   }
 
-  return {indexer.vertices, indexer.indices};
+  return {};
 }
 
 /**
@@ -124,7 +124,7 @@ Model Sphere(float radius, int slices, int stacks) {
       indexer.indices.push_back(indexer.addVertex(topRight));
     }
   }
-  return {indexer.vertices, indexer.indices};
+  return {};
 }
 
 /**
@@ -135,35 +135,65 @@ Model Sphere(float radius, int slices, int stacks) {
  * @return A Model object containing the vertices of the generated plane.
  */
 Model Plane(float length, int divisions) {
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
 
-  float divisionSize = length / divisions;
-  float halfLength = length / 2.0f;
+  AttributeIndexer<glm::vec3> posIdx;
+  AttributeIndexer<glm::vec3> normIdx;
+  AttributeIndexer<glm::vec2> uvIdx;
 
-  // VERTICES
+  float half = length / 2.0f;
+  float step = length / divisions;
+
+  glm::vec3 normal(0, 1, 0);
 
   for (int x = 0; x < divisions; x++) {
     for (int z = 0; z < divisions; z++) {
-      float xPos = (x * divisionSize) - halfLength;
-      float zPos = (z * divisionSize) - halfLength;
-      float xNext = ((x + 1) * divisionSize) - halfLength;
-      float zNext = ((z + 1) * divisionSize) - halfLength;
+      float x0 = -half + x * step;
+      float z0 = -half + z * step;
+      float x1 = x0 + step;
+      float z1 = z0 + step;
 
-      vec3 bottomLeft = vec3(xPos, 0, zPos);
-      vec3 bottomRight = vec3(xNext, 0, zPos);
-      vec3 topLeft = vec3(xPos, 0, zNext);
-      vec3 topRight = vec3(xNext, 0, zNext);
+      glm::vec3 p0(x0, 0, z0);
+      glm::vec3 p1(x1, 0, z0);
+      glm::vec3 p2(x0, 0, z1);
+      glm::vec3 p3(x1, 0, z1);
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      float xTexCoord0 = (x0 + half) / length;
+      float xTexCoord1 = (x1 + half) / length;
+      float zTexCoord0 = (z0 + half) / length;
+      float zTexCoord1 = (z1 + half) / length;
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
-      indexer.indices.push_back(indexer.addVertex(topRight));
+      glm::vec2 uv0(xTexCoord0, zTexCoord0);
+      glm::vec2 uv1(xTexCoord1, zTexCoord0);
+      glm::vec2 uv2(xTexCoord0, zTexCoord1);
+      glm::vec2 uv3(xTexCoord1, zTexCoord1);
+
+      unsigned int i0 = posIdx.add(p0);
+      unsigned int i1 = posIdx.add(p1);
+      unsigned int i2 = posIdx.add(p2);
+      unsigned int i3 = posIdx.add(p3);
+
+      unsigned int n = normIdx.add(normal);
+
+      unsigned int t0 = uvIdx.add(uv0);
+      unsigned int t1 = uvIdx.add(uv1);
+      unsigned int t2 = uvIdx.add(uv2);
+      unsigned int t3 = uvIdx.add(uv3);
+
+      model.indices.push_back({i1, t1, n});
+      model.indices.push_back({i0, t0, n});
+      model.indices.push_back({i2, t2, n});
+
+      model.indices.push_back({i1, t1, n});
+      model.indices.push_back({i2, t2, n});
+      model.indices.push_back({i3, t3, n});
     }
   }
-  return {indexer.vertices, indexer.indices};
+
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+  return model;
 }
 
 /**
@@ -237,7 +267,7 @@ Model Box(float size, int divisions) {
     }
   }
 
-  return Model{indexer.vertices, indexer.indices};
+  return Model{};
 }
 
 /**
@@ -304,7 +334,7 @@ Model Cylinder(float radius, float height, int slices, int stacks) {
     indexer.indices.push_back(indexer.addVertex(topRight));
   }
 
-  return {indexer.vertices, indexer.indices};
+  return {};
 }
 
 /**
@@ -350,7 +380,7 @@ Model Torus(float radius, float tubeRadius, int slices, int stacks) {
       indexer.indices.push_back(indexer.addVertex(topRight));
     }
   }
-  return {indexer.vertices, indexer.indices};
+  return {};
 }
 
 /**
@@ -442,7 +472,7 @@ Model Icosphere(float radius, int subdivisions) {
     indexer.indices.push_back(indexer.addVertex(vertex * radius));
   }
 
-  return {indexer.vertices, indexer.indices};
+  return {};
 }
 
 /**
@@ -577,7 +607,7 @@ Model BezierSurface(const std::string patch, int tessellation) {
     }
   }
 
-  return {indexer.vertices, indexer.indices};
+  return {};
 }
 
 /**
@@ -594,38 +624,28 @@ Model BezierSurface(const std::string patch, int tessellation) {
  */
 bool Export(const Model& model, const std::string& filename) {
   std::ofstream file(filename);
-  if (!file.is_open()) {
-    return false;
-  }
+  if (!file.is_open()) return false;
 
-  // Write vertex positions
-  for (const auto& vertex : model.vertices) {
-    file << "v " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
-  }
+  for (const auto& v : model.positions)
+    file << "v " << v.x << " " << v.y << " " << v.z << "\n";
 
-  // Write faces (triangles)
+  for (const auto& vt : model.texcoords)
+    file << "vt " << vt.x << " " << vt.y << "\n";
+
+  for (const auto& vn : model.normals)
+    file << "vn " << vn.x << " " << vn.y << " " << vn.z << "\n";
+
   for (size_t i = 0; i < model.indices.size(); i += 3) {
-    // OBJ indices start at 1, not 0
-    unsigned int i1 = model.indices[i] + 1;
-    unsigned int i2 = model.indices[i + 1] + 1;
-    unsigned int i3 = model.indices[i + 2] + 1;
-    file << "f " << i1 << " " << i2 << " " << i3 << "\n";
+    auto idx = [&](const Model::IndexTriplet& t) {
+      return std::to_string(t.posIndex + 1) + "/" +
+             std::to_string(t.uvIndex + 1) + "/" +
+             std::to_string(t.normIndex + 1);
+    };
+    file << "f " << idx(model.indices[i]) << " " << idx(model.indices[i + 1])
+         << " " << idx(model.indices[i + 2]) << "\n";
   }
 
-  file.flush();
   return true;
-}
-
-Model Patch(std::string path, unsigned int tesselation) {
-  Model model;
-  std::ifstream file(path);
-  if (!file.is_open()) {
-    std::cerr << "Failed to open file: " << path << std::endl;
-    return model;
-  }
-
-  file.close();
-  return model;
 }
 
 }  // namespace generator
