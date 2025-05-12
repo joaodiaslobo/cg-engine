@@ -200,7 +200,6 @@ optional<Texture> loadTexture(const std::string& file_path) {
 }
 
 void Model::sendTextureToGPU(Texture& texture) {
-  logger.info("Loading texture: " + texture.GetName());
   glGenTextures(1, &textureBuffer);
   glBindTexture(GL_TEXTURE_2D, textureBuffer);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -324,6 +323,22 @@ void Model::render(ViewMode viewMode) {
   glMaterialfv(GL_FRONT, GL_EMISSION, &material.emission.x);
   glMaterialf(GL_FRONT, GL_SHININESS, material.shininess);
 
+  logger.info("======= Rendering model: " + name + " =======");
+  logger.info("Diffuse: " + std::to_string(material.diffuse.x) + ", " +
+              std::to_string(material.diffuse.y) + ", " +
+              std::to_string(material.diffuse.z));
+  logger.info("Ambient: " + std::to_string(material.ambient.x) + ", " +
+              std::to_string(material.ambient.y) + ", " +
+              std::to_string(material.ambient.z));
+  logger.info("Specular: " + std::to_string(material.specular.x) + ", " +
+              std::to_string(material.specular.y) + ", " +
+              std::to_string(material.specular.z));
+  logger.info("Emission: " + std::to_string(material.emission.x) + ", " +
+              std::to_string(material.emission.y) + ", " +
+              std::to_string(material.emission.z));
+  logger.info("Shininess: " + std::to_string(material.shininess));
+  logger.info("=========================================");
+  
   // Enable client states
   glEnableClientState(GL_VERTEX_ARRAY);
 
