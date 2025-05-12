@@ -45,47 +45,98 @@ vec3 sphericalToCartesian(float radius, float alpha, float beta) {
  * @return A Model object containing the vertices of the cone.
  */
 Model Cone(float radius, float height, int slices, int stacks) {
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
+  AttributeIndexer<glm::vec3> posIdx;
+  AttributeIndexer<glm::vec3> normIdx;
+  AttributeIndexer<glm::vec2> uvIdx;
 
   float sliceSize = 2 * M_PI / slices;
   float stackSize = height / stacks;
 
-  // VERTICES
+  glm::vec3 tip = {0, height, 0};
+  glm::vec3 baseMiddle = {0, 0, 0};
 
-  vec3 baseMiddle = vec3(0, 0, 0);
+  for (int stack = 0; stack < stacks; stack++) {
+    float currentRadius = radius - stack * radius / stacks;
+    float nextRadius = radius - (stack + 1) * radius / stacks;
 
-  for (int slice = 0; slice < slices; slice++) {
-    for (int stack = 0; stack < stacks; stack++) {
-      float currentRadius = radius - stack * radius / stacks;
-      float nextRadius = radius - (stack + 1) * radius / stacks;
+    for (int slice = 0; slice < slices; slice++) {
+      float u1 = (float)slice / slices;
+      float u2 = (float)(slice + 1) / slices;
+      float v1 = (float)stack / stacks;
+      float v2 = (float)(stack + 1) / stacks;
 
-      vec3 bottomLeft =
+      glm::vec3 bottomLeft =
           polarToCartesian(currentRadius, slice * sliceSize, stack * stackSize);
-      vec3 bottomRight = polarToCartesian(
+      glm::vec3 bottomRight = polarToCartesian(
           currentRadius, (slice + 1) * sliceSize, stack * stackSize);
-      vec3 topLeft = polarToCartesian(nextRadius, slice * sliceSize,
-                                      (stack + 1) * stackSize);
-      vec3 topRight = polarToCartesian(nextRadius, (slice + 1) * sliceSize,
-                                       (stack + 1) * stackSize);
+      glm::vec3 topLeft = polarToCartesian(nextRadius, slice * sliceSize,
+                                           (stack + 1) * stackSize);
+      glm::vec3 topRight = polarToCartesian(nextRadius, (slice + 1) * sliceSize,
+                                            (stack + 1) * stackSize);
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      glm::vec3 sideNormal = glm::normalize(
+          glm::cross(bottomRight - bottomLeft, topLeft - bottomLeft));
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
-      indexer.indices.push_back(indexer.addVertex(topRight));
+      glm::vec2 uvBottomLeft = {u1, v1};
+      glm::vec2 uvBottomRight = {u2, v1};
+      glm::vec2 uvTopLeft = {u1, v2};
+      glm::vec2 uvTopRight = {u2, v2};
+
+      unsigned int i0 = posIdx.add(bottomLeft);
+      unsigned int i1 = posIdx.add(bottomRight);
+      unsigned int i2 = posIdx.add(topLeft);
+      unsigned int i3 = posIdx.add(topRight);
+
+      unsigned int t0 = uvIdx.add(uvBottomLeft);
+      unsigned int t1 = uvIdx.add(uvBottomRight);
+      unsigned int t2 = uvIdx.add(uvTopLeft);
+      unsigned int t3 = uvIdx.add(uvTopRight);
+
+      unsigned int n = normIdx.add(sideNormal);
+
+      model.indices.push_back({i0, t0, n});
+      model.indices.push_back({i1, t1, n});
+      model.indices.push_back({i2, t2, n});
+
+      model.indices.push_back({i2, t2, n});
+      model.indices.push_back({i1, t1, n});
+      model.indices.push_back({i3, t3, n});
     }
-
-    vec3 baseBottomLeft = polarToCartesian(radius, slice * sliceSize, 0);
-    vec3 baseBottomRight = polarToCartesian(radius, (slice + 1) * sliceSize, 0);
-
-    indexer.indices.push_back(indexer.addVertex(baseMiddle));
-    indexer.indices.push_back(indexer.addVertex(baseBottomRight));
-    indexer.indices.push_back(indexer.addVertex(baseBottomLeft));
   }
 
-  return {};
+  for (int slice = 0; slice < slices; slice++) {
+    float u1 = (float)slice / slices;
+    float u2 = (float)(slice + 1) / slices;
+
+    glm::vec3 baseBottomLeft = polarToCartesian(radius, slice * sliceSize, 0);
+    glm::vec3 baseBottomRight =
+        polarToCartesian(radius, (slice + 1) * sliceSize, 0);
+
+    glm::vec2 uvBottomLeft = {u1, 0};
+    glm::vec2 uvBottomRight = {u2, 0};
+    glm::vec2 uvCenter = {0.5f, 0.5f};
+
+    unsigned int i0 = posIdx.add(baseMiddle);
+    unsigned int i1 = posIdx.add(baseBottomRight);
+    unsigned int i2 = posIdx.add(baseBottomLeft);
+
+    unsigned int t0 = uvIdx.add(uvCenter);
+    unsigned int t1 = uvIdx.add(uvBottomRight);
+    unsigned int t2 = uvIdx.add(uvBottomLeft);
+
+    glm::vec3 baseNormal = {0, -1, 0};
+
+    model.indices.push_back({i0, t0, normIdx.add(baseNormal)});
+    model.indices.push_back({i1, t1, normIdx.add(baseNormal)});
+    model.indices.push_back({i2, t2, normIdx.add(baseNormal)});
+  }
+
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+
+  return model;
 }
 
 /**
