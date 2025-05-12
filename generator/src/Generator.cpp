@@ -9,6 +9,7 @@
 #include <fstream>
 #include <glm/vec3.hpp>
 #include <iostream>
+#include <unordered_map>
 
 using glm::vec2;
 using glm::vec3;
@@ -640,15 +641,14 @@ Model Torus(float radius, float tubeRadius, int slices, int stacks) {
  * @return A Model object containing the vertices of the generated icosphere.
  */
 Model Icosphere(float radius, int subdivisions) {
-  if (subdivisions < 1) {
-    return {};
-  }
-
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
+  AttributeIndexer<vec3> posIdx;
+  AttributeIndexer<vec3> normIdx;
+  AttributeIndexer<vec2> uvIdx;
 
   float t = (1.0f + sqrt(5.0f)) / 2.0f;
 
-  vector<vec3> icosahedronVertices = {
+  vector<vec3> vertices = {
       glm::normalize(vec3(-1, t, 0)),  glm::normalize(vec3(1, t, 0)),
       glm::normalize(vec3(-1, -t, 0)), glm::normalize(vec3(1, -t, 0)),
       glm::normalize(vec3(0, -1, t)),  glm::normalize(vec3(0, 1, t)),
@@ -656,71 +656,62 @@ Model Icosphere(float radius, int subdivisions) {
       glm::normalize(vec3(t, 0, -1)),  glm::normalize(vec3(t, 0, 1)),
       glm::normalize(vec3(-t, 0, -1)), glm::normalize(vec3(-t, 0, 1))};
 
-  vector<vec3> icosahedronFaces = {
-      vec3(0, 11, 5),  vec3(0, 5, 1),  vec3(0, 1, 7),  vec3(0, 7, 10),
-      vec3(0, 10, 11), vec3(1, 5, 9),  vec3(5, 11, 4), vec3(11, 10, 2),
-      vec3(10, 7, 6),  vec3(7, 1, 8),  vec3(3, 9, 4),  vec3(3, 4, 2),
-      vec3(3, 2, 6),   vec3(3, 6, 8),  vec3(3, 8, 9),  vec3(4, 9, 5),
-      vec3(2, 4, 11),  vec3(6, 2, 10), vec3(8, 6, 7),  vec3(9, 8, 1)};
+  vector<glm::ivec3> faces = {{0, 11, 5},  {0, 5, 1},  {0, 1, 7},  {0, 7, 10},
+                              {0, 10, 11}, {1, 5, 9},  {5, 11, 4}, {11, 10, 2},
+                              {10, 7, 6},  {7, 1, 8},  {3, 9, 4},  {3, 4, 2},
+                              {3, 2, 6},   {3, 6, 8},  {3, 8, 9},  {4, 9, 5},
+                              {2, 4, 11},  {6, 2, 10}, {8, 6, 7},  {9, 8, 1}};
 
-  if (subdivisions != 1) {
-    for (int i = 0; i < subdivisions - 1; i++) {
-      vector<vec3> newVertices;
-      vector<vec3> newFaces;
+  // Subdivision helper: caches midpoints so we don’t duplicate them
+  std::unordered_map<uint64_t, int> midpointCache;
+  auto getMidpoint = [&](int a, int b) -> int {
+    uint64_t key = (uint64_t)std::min(a, b) << 32 | std::max(a, b);
+    if (auto it = midpointCache.find(key); it != midpointCache.end())
+      return it->second;
 
-      for (const auto& face : icosahedronFaces) {
-        vec3 a = icosahedronVertices[face.x];
-        vec3 b = icosahedronVertices[face.y];
-        vec3 c = icosahedronVertices[face.z];
+    vec3 mid = glm::normalize((vertices[a] + vertices[b]) * 0.5f);
+    vertices.push_back(mid);
+    return midpointCache[key] = vertices.size() - 1;
+  };
 
-        vec3 ab = glm::normalize((a + b) / 2.0f);
-        vec3 bc = glm::normalize((b + c) / 2.0f);
-        vec3 ca = glm::normalize((c + a) / 2.0f);
-
-        int indexA = newVertices.size();
-        newVertices.push_back(a);
-        int indexB = newVertices.size();
-        newVertices.push_back(b);
-        int indexC = newVertices.size();
-        newVertices.push_back(c);
-        int indexAB = newVertices.size();
-        newVertices.push_back(ab);
-        int indexBC = newVertices.size();
-        newVertices.push_back(bc);
-        int indexCA = newVertices.size();
-        newVertices.push_back(ca);
-
-        newFaces.push_back(vec3(indexA, indexAB, indexCA));
-        newFaces.push_back(vec3(indexAB, indexB, indexBC));
-        newFaces.push_back(vec3(indexBC, indexC, indexCA));
-        newFaces.push_back(vec3(indexAB, indexBC, indexCA));
-      }
-
-      icosahedronVertices = newVertices;
-      icosahedronFaces = newFaces;
+  for (int i = 0; i < subdivisions; ++i) {
+    vector<glm::ivec3> newFaces;
+    for (const auto& f : faces) {
+      int a = f.x, b = f.y, c = f.z;
+      int ab = getMidpoint(a, b);
+      int bc = getMidpoint(b, c);
+      int ca = getMidpoint(c, a);
+      newFaces.push_back({a, ab, ca});
+      newFaces.push_back({b, bc, ab});
+      newFaces.push_back({c, ca, bc});
+      newFaces.push_back({ab, bc, ca});
     }
-
-  } else {
-    vector<vec3> newVertices;
-
-    for (const auto& face : icosahedronFaces) {
-      vec3 a = icosahedronVertices[face.x];
-      vec3 b = icosahedronVertices[face.y];
-      vec3 c = icosahedronVertices[face.z];
-
-      indexer.indices.push_back(indexer.addVertex(a * radius));
-      indexer.indices.push_back(indexer.addVertex(b * radius));
-      indexer.indices.push_back(indexer.addVertex(c * radius));
-    }
-
-    icosahedronVertices = newVertices;
+    faces = std::move(newFaces);
   }
 
-  for (const auto& vertex : icosahedronVertices) {
-    indexer.indices.push_back(indexer.addVertex(vertex * radius));
+  // Add positions, normals, UVs and indices
+  for (const auto& f : faces) {
+    for (int i = 0; i < 3; ++i) {
+      int vi = f[i];
+      vec3 pos = vertices[vi] * radius;
+      vec3 norm = vertices[vi];  // unit vector from center
+      float u = atan2(norm.z, norm.x) / (2 * M_PI) + 0.5f;
+      float v = acos(norm.y) / M_PI;
+      vec2 uv = vec2(u, v);
+
+      unsigned int pi = posIdx.add(pos);
+      unsigned int ni = normIdx.add(norm);
+      unsigned int ti = uvIdx.add(uv);
+
+      model.indices.push_back({pi, ti, ni});
+    }
   }
 
-  return {};
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+
+  return model;
 }
 
 /**
