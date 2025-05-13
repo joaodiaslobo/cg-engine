@@ -719,11 +719,16 @@ Model Icosphere(float radius, int subdivisions) {
  *
  * @param control_points The control points of the Bezier patch.
  * @param tesselation_level The level of tessellation for the patch.
- * @return A vector of vertices representing the Bezier patch.
+ * @return A tuple of positions, normals, and texture coordinates.
  */
-std::vector<vec3> BezierPatch(const std::array<vec3, 16>& control_points,
-                              const size_t tesselation_level) {
-  std::vector<vec3> vertices((tesselation_level + 1) * (tesselation_level + 1));
+std::tuple<std::vector<vec3>, std::vector<vec3>, std::vector<vec2>> BezierPatch(
+    const std::array<vec3, 16>& control_points,
+    const size_t tesselation_level) {
+  std::vector<vec3> positions((tesselation_level + 1) *
+                              (tesselation_level + 1));
+  std::vector<vec3> normals((tesselation_level + 1) * (tesselation_level + 1));
+  std::vector<vec2> texcoords((tesselation_level + 1) *
+                              (tesselation_level + 1));
 
   glm::mat4 bernstein_matrix =
       glm::mat4(-1, 3, -3, 1, 3, -6, 3, 0, -3, 3, 0, 0, 1, 0, 0, 0);
@@ -748,13 +753,52 @@ std::vector<vec3> BezierPatch(const std::array<vec3, 16>& control_points,
         vec4 u_vector = {u * u * u, u * u, u, 1};
         vec4 v_vector = {v * v * v, v * v, v, 1};
 
-        vertices[j * (tesselation_level + 1) + k][i] =
+        positions[j * (tesselation_level + 1) + k][i] =
             glm::dot(v_vector, result_matrix * u_vector);
       }
     }
   }
 
-  return vertices;
+  for (int j = 0; j <= tesselation_level; j++) {
+    for (int k = 0; k <= tesselation_level; k++) {
+      float u = static_cast<float>(j) / tesselation_level;
+      float v = static_cast<float>(k) / tesselation_level;
+      int idx = j * (tesselation_level + 1) + k;
+
+      vec3 tangent_u, tangent_v;
+
+      // For tangent_u: calculate partial derivative with respect to u
+      if (j > 0 && j < tesselation_level) {
+        tangent_u = positions[(j + 1) * (tesselation_level + 1) + k] -
+                    positions[(j - 1) * (tesselation_level + 1) + k];
+      } else if (j == 0) {
+        tangent_u = positions[(j + 1) * (tesselation_level + 1) + k] -
+                    positions[j * (tesselation_level + 1) + k];
+      } else {  // j == tesselation_level
+        tangent_u = positions[j * (tesselation_level + 1) + k] -
+                    positions[(j - 1) * (tesselation_level + 1) + k];
+      }
+
+      // For tangent_v: calculate partial derivative with respect to v
+      if (k > 0 && k < tesselation_level) {
+        tangent_v = positions[j * (tesselation_level + 1) + (k + 1)] -
+                    positions[j * (tesselation_level + 1) + (k - 1)];
+      } else if (k == 0) {
+        tangent_v = positions[j * (tesselation_level + 1) + (k + 1)] -
+                    positions[j * (tesselation_level + 1) + k];
+      } else {
+        tangent_v = positions[j * (tesselation_level + 1) + k] -
+                    positions[j * (tesselation_level + 1) + (k - 1)];
+      }
+
+      // Normal is the cross product of tangent vectors
+      normals[idx] = glm::normalize(glm::cross(tangent_v, tangent_u));
+
+      texcoords[idx] = vec2(u, v);
+    }
+  }
+
+  return {positions, normals, texcoords};
 }
 
 /**
@@ -807,46 +851,59 @@ Model BezierSurface(const std::string patch, int tessellation) {
 
   file.close();
 
-  // Generate model
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
+  AttributeIndexer<glm::vec3> posIdx;
+  AttributeIndexer<glm::vec3> normIdx;
+  AttributeIndexer<glm::vec2> uvIdx;
 
-  uint32_t start = 0;
   for (const auto& patch : patches) {
     std::array<glm::vec3, 16> patch_vertices;
     for (int i = 0; i < patch.size(); ++i) {
       patch_vertices[i] = control_points[patch[i]];
     }
 
-    std::vector<vec3> vertices = BezierPatch(patch_vertices, tessellation);
-    std::vector<std::vector<uint32_t>> index_grid(
-        tessellation + 1, std::vector<uint32_t>(tessellation + 1));
+    auto [positions, normals, texcoords] =
+        BezierPatch(patch_vertices, tessellation);
+
+    std::vector<std::vector<std::tuple<uint32_t, uint32_t, uint32_t>>>
+        index_grid(tessellation + 1,
+                   std::vector<std::tuple<uint32_t, uint32_t, uint32_t>>(
+                       tessellation + 1));
 
     for (int j = 0; j <= tessellation; ++j) {
       for (int k = 0; k <= tessellation; ++k) {
         int idx = j * (tessellation + 1) + k;
-        index_grid[j][k] = indexer.addVertex(vertices[idx]);
+        uint32_t pos_idx = posIdx.add(positions[idx]);
+        uint32_t norm_idx = normIdx.add(normals[idx]);
+        uint32_t uv_idx = uvIdx.add(texcoords[idx]);
+
+        index_grid[j][k] = {pos_idx, uv_idx, norm_idx};
       }
     }
 
     for (int z = 0; z < tessellation; ++z) {
       for (int x = 0; x < tessellation; ++x) {
-        uint32_t top_left = index_grid[z][x];
-        uint32_t top_right = index_grid[z][x + 1];
-        uint32_t bottom_left = index_grid[z + 1][x];
-        uint32_t bottom_right = index_grid[z + 1][x + 1];
+        auto [pos0, uv0, norm0] = index_grid[z][x];
+        auto [pos1, uv1, norm1] = index_grid[z][x + 1];
+        auto [pos2, uv2, norm2] = index_grid[z + 1][x];
+        auto [pos3, uv3, norm3] = index_grid[z + 1][x + 1];
 
-        indexer.indices.push_back(top_left);
-        indexer.indices.push_back(bottom_left);
-        indexer.indices.push_back(bottom_right);
+        model.indices.push_back({pos0, uv0, norm0});
+        model.indices.push_back({pos3, uv3, norm3});
+        model.indices.push_back({pos2, uv2, norm2});
 
-        indexer.indices.push_back(top_left);
-        indexer.indices.push_back(bottom_right);
-        indexer.indices.push_back(top_right);
+        model.indices.push_back({pos0, uv0, norm0});
+        model.indices.push_back({pos1, uv1, norm1});
+        model.indices.push_back({pos3, uv3, norm3});
       }
     }
   }
 
-  return {};
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+
+  return model;
 }
 
 /**

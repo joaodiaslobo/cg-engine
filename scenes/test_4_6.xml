@@ -52,8 +52,8 @@
 				<rotate angle="-90" x="1" y="0" z="0" />
 			</transform>
 			<models> 
-				<model file="bezier_10.3d" > <!-- generator patch teapot.patch 10 bezier_10.3d -->
-					<texture file = "teapot.jpg" />
+				<model file="models\bezier_10.3d" > <!-- generator patch teapot.patch 10 bezier_10.3d -->
+					<texture file = "textures\teapot.jpg" />
 				</model>
 			</models>
 		</group>
