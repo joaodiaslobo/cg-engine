@@ -662,7 +662,7 @@ Model Icosphere(float radius, int subdivisions) {
                               {3, 2, 6},   {3, 6, 8},  {3, 8, 9},  {4, 9, 5},
                               {2, 4, 11},  {6, 2, 10}, {8, 6, 7},  {9, 8, 1}};
 
-  // Subdivision helper: caches midpoints so we don’t duplicate them
+  // Subdivision helper: caches midpoints so we don't duplicate them
   std::unordered_map<uint64_t, int> midpointCache;
   auto getMidpoint = [&](int a, int b) -> int {
     uint64_t key = (uint64_t)std::min(a, b) << 32 | std::max(a, b);
@@ -689,15 +689,61 @@ Model Icosphere(float radius, int subdivisions) {
     faces = std::move(newFaces);
   }
 
+  // Dirty fix for UV seams
+  auto fixSeamUVs = [](const vec2& uv1, const vec2& uv2,
+                       const vec2& uv3) -> std::tuple<vec2, vec2, vec2> {
+    // Check if we're crossing the seam (large U difference)
+    float u1 = uv1.x, u2 = uv2.x, u3 = uv3.x;
+
+    // Find max and min U values - avoiding initializer_list
+    float maxU = u1;
+    if (u2 > maxU) maxU = u2;
+    if (u3 > maxU) maxU = u3;
+
+    float minU = u1;
+    if (u2 < minU) minU = u2;
+    if (u3 < minU) minU = u3;
+
+    // If the U range is greater than 0.5, we're crossing the seam
+    if (maxU - minU > 0.5f) {
+      // Create copies of the UVs
+      vec2 newUV1 = uv1;
+      vec2 newUV2 = uv2;
+      vec2 newUV3 = uv3;
+
+      // If a U coordinate is less than 0.5, add 1.0 to it
+      if (u1 < 0.5f && maxU > 0.75f) newUV1.x += 1.0f;
+      if (u2 < 0.5f && maxU > 0.75f) newUV2.x += 1.0f;
+      if (u3 < 0.5f && maxU > 0.75f) newUV3.x += 1.0f;
+
+      return {newUV1, newUV2, newUV3};
+    }
+
+    // If we're not crossing the seam, return the original UVs
+    return {uv1, uv2, uv3};
+  };
+
   // Add positions, normals, UVs and indices
   for (const auto& f : faces) {
+    std::vector<vec2> faceUVs;
+    std::vector<int> vertexIndices;
+
     for (int i = 0; i < 3; ++i) {
       int vi = f[i];
-      vec3 pos = vertices[vi] * radius;
-      vec3 norm = vertices[vi];  // unit vector from center
+      vec3 norm = vertices[vi];
       float u = atan2(norm.z, norm.x) / (2 * M_PI) + 0.5f;
       float v = acos(norm.y) / M_PI;
-      vec2 uv = vec2(u, v);
+      faceUVs.push_back(vec2(u, v));
+      vertexIndices.push_back(vi);
+    }
+
+    auto [uv1, uv2, uv3] = fixSeamUVs(faceUVs[0], faceUVs[1], faceUVs[2]);
+
+    for (int i = 0; i < 3; ++i) {
+      int vi = vertexIndices[i];
+      vec3 pos = vertices[vi] * radius;
+      vec3 norm = vertices[vi];
+      vec2 uv = (i == 0) ? uv1 : ((i == 1) ? uv2 : uv3);
 
       unsigned int pi = posIdx.add(pos);
       unsigned int ni = normIdx.add(norm);
