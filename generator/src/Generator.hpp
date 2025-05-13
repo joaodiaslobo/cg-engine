@@ -74,26 +74,4 @@ class AttributeIndexer {
  private:
   std::unordered_map<T, unsigned int> indexMap;
 };
-
-template <typename Vertex, typename Hash = std::hash<Vertex>>
-class VertexIndexer {
- public:
-  std::vector<Vertex> vertices;
-  std::vector<unsigned int> indices;
-
-  unsigned int addVertex(const Vertex& v) {
-    auto it = vertexToIndex.find(v);
-    if (it != vertexToIndex.end()) {
-      return it->second;
-    } else {
-      unsigned int index = static_cast<unsigned int>(vertices.size());
-      vertices.push_back(v);
-      vertexToIndex[v] = index;
-      return index;
-    }
-  }
-
- private:
-  std::unordered_map<Vertex, unsigned int, Hash> vertexToIndex;
-};
 }  // namespace generator
