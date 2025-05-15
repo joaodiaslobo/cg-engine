@@ -200,7 +200,6 @@ optional<Texture> loadTexture(const std::string& file_path) {
 }
 
 void Model::sendTextureToGPU(Texture& texture) {
-  logger.info("Loading texture: " + texture.GetName());
   glGenTextures(1, &textureBuffer);
   glBindTexture(GL_TEXTURE_2D, textureBuffer);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -267,7 +266,7 @@ void Model::addIndex(uint32_t index) { indexes.push_back(index); }
  * vertex in the direction of its normal. This is useful for debugging to ensure
  * normals are loaded and calculated correctly.
  *
- * @param scale The length of the normal lines (default: 0.1).
+ * @param scale The length of the normal lines.
  */
 void Model::renderNormals(float scale) {
   if (!hasNormals || normals.empty() || vertices.empty()) {

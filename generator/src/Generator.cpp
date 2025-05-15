@@ -9,7 +9,9 @@
 #include <fstream>
 #include <glm/vec3.hpp>
 #include <iostream>
+#include <unordered_map>
 
+using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 using std::vector;
@@ -45,47 +47,98 @@ vec3 sphericalToCartesian(float radius, float alpha, float beta) {
  * @return A Model object containing the vertices of the cone.
  */
 Model Cone(float radius, float height, int slices, int stacks) {
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
+  AttributeIndexer<glm::vec3> posIdx;
+  AttributeIndexer<glm::vec3> normIdx;
+  AttributeIndexer<glm::vec2> uvIdx;
 
   float sliceSize = 2 * M_PI / slices;
   float stackSize = height / stacks;
 
-  // VERTICES
+  glm::vec3 tip = {0, height, 0};
+  glm::vec3 baseMiddle = {0, 0, 0};
 
-  vec3 baseMiddle = vec3(0, 0, 0);
+  for (int stack = 0; stack < stacks; stack++) {
+    float currentRadius = radius - stack * radius / stacks;
+    float nextRadius = radius - (stack + 1) * radius / stacks;
 
-  for (int slice = 0; slice < slices; slice++) {
-    for (int stack = 0; stack < stacks; stack++) {
-      float currentRadius = radius - stack * radius / stacks;
-      float nextRadius = radius - (stack + 1) * radius / stacks;
+    for (int slice = 0; slice < slices; slice++) {
+      float u1 = (float)slice / slices;
+      float u2 = (float)(slice + 1) / slices;
+      float v1 = (float)stack / stacks;
+      float v2 = (float)(stack + 1) / stacks;
 
-      vec3 bottomLeft =
+      glm::vec3 bottomLeft =
           polarToCartesian(currentRadius, slice * sliceSize, stack * stackSize);
-      vec3 bottomRight = polarToCartesian(
+      glm::vec3 bottomRight = polarToCartesian(
           currentRadius, (slice + 1) * sliceSize, stack * stackSize);
-      vec3 topLeft = polarToCartesian(nextRadius, slice * sliceSize,
-                                      (stack + 1) * stackSize);
-      vec3 topRight = polarToCartesian(nextRadius, (slice + 1) * sliceSize,
-                                       (stack + 1) * stackSize);
+      glm::vec3 topLeft = polarToCartesian(nextRadius, slice * sliceSize,
+                                           (stack + 1) * stackSize);
+      glm::vec3 topRight = polarToCartesian(nextRadius, (slice + 1) * sliceSize,
+                                            (stack + 1) * stackSize);
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      glm::vec3 sideNormal = glm::normalize(
+          glm::cross(bottomRight - bottomLeft, topLeft - bottomLeft));
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
-      indexer.indices.push_back(indexer.addVertex(topRight));
+      glm::vec2 uvBottomLeft = {u1, v1};
+      glm::vec2 uvBottomRight = {u2, v1};
+      glm::vec2 uvTopLeft = {u1, v2};
+      glm::vec2 uvTopRight = {u2, v2};
+
+      unsigned int i0 = posIdx.add(bottomLeft);
+      unsigned int i1 = posIdx.add(bottomRight);
+      unsigned int i2 = posIdx.add(topLeft);
+      unsigned int i3 = posIdx.add(topRight);
+
+      unsigned int t0 = uvIdx.add(uvBottomLeft);
+      unsigned int t1 = uvIdx.add(uvBottomRight);
+      unsigned int t2 = uvIdx.add(uvTopLeft);
+      unsigned int t3 = uvIdx.add(uvTopRight);
+
+      unsigned int n = normIdx.add(sideNormal);
+
+      model.indices.push_back({i0, t0, n});
+      model.indices.push_back({i1, t1, n});
+      model.indices.push_back({i2, t2, n});
+
+      model.indices.push_back({i2, t2, n});
+      model.indices.push_back({i1, t1, n});
+      model.indices.push_back({i3, t3, n});
     }
-
-    vec3 baseBottomLeft = polarToCartesian(radius, slice * sliceSize, 0);
-    vec3 baseBottomRight = polarToCartesian(radius, (slice + 1) * sliceSize, 0);
-
-    indexer.indices.push_back(indexer.addVertex(baseMiddle));
-    indexer.indices.push_back(indexer.addVertex(baseBottomRight));
-    indexer.indices.push_back(indexer.addVertex(baseBottomLeft));
   }
 
-  return {indexer.vertices, indexer.indices};
+  for (int slice = 0; slice < slices; slice++) {
+    float u1 = (float)slice / slices;
+    float u2 = (float)(slice + 1) / slices;
+
+    glm::vec3 baseBottomLeft = polarToCartesian(radius, slice * sliceSize, 0);
+    glm::vec3 baseBottomRight =
+        polarToCartesian(radius, (slice + 1) * sliceSize, 0);
+
+    glm::vec2 uvBottomLeft = {u1, 0};
+    glm::vec2 uvBottomRight = {u2, 0};
+    glm::vec2 uvCenter = {0.5f, 0.5f};
+
+    unsigned int i0 = posIdx.add(baseMiddle);
+    unsigned int i1 = posIdx.add(baseBottomRight);
+    unsigned int i2 = posIdx.add(baseBottomLeft);
+
+    unsigned int t0 = uvIdx.add(uvCenter);
+    unsigned int t1 = uvIdx.add(uvBottomRight);
+    unsigned int t2 = uvIdx.add(uvBottomLeft);
+
+    glm::vec3 baseNormal = {0, -1, 0};
+
+    model.indices.push_back({i0, t0, normIdx.add(baseNormal)});
+    model.indices.push_back({i1, t1, normIdx.add(baseNormal)});
+    model.indices.push_back({i2, t2, normIdx.add(baseNormal)});
+  }
+
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+
+  return model;
 }
 
 /**
@@ -97,34 +150,68 @@ Model Cone(float radius, float height, int slices, int stacks) {
  * @return A Model object containing the vertices of the generated sphere.
  */
 Model Sphere(float radius, int slices, int stacks) {
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
+  AttributeIndexer<glm::vec3> posIdx;
+  AttributeIndexer<glm::vec3> normIdx;
+  AttributeIndexer<glm::vec2> uvIdx;
 
   float sliceSize = 2 * M_PI / slices;
   float stackSize = M_PI / stacks;
 
-  // VERTICES
-
   for (int slice = 0; slice < slices; slice++) {
     for (int stack = 0; stack < stacks; stack++) {
-      vec3 bottomLeft = sphericalToCartesian(radius, slice * sliceSize,
-                                             stack * stackSize - M_PI_2);
-      vec3 bottomRight = sphericalToCartesian(radius, (slice + 1) * sliceSize,
-                                              stack * stackSize - M_PI_2);
-      vec3 topLeft = sphericalToCartesian(radius, slice * sliceSize,
-                                          (stack + 1) * stackSize - M_PI_2);
-      vec3 topRight = sphericalToCartesian(radius, (slice + 1) * sliceSize,
-                                           (stack + 1) * stackSize - M_PI_2);
+      glm::vec3 bottomLeft = sphericalToCartesian(radius, slice * sliceSize,
+                                                  stack * stackSize - M_PI_2);
+      glm::vec3 bottomRight = sphericalToCartesian(
+          radius, (slice + 1) * sliceSize, stack * stackSize - M_PI_2);
+      glm::vec3 topLeft = sphericalToCartesian(
+          radius, slice * sliceSize, (stack + 1) * stackSize - M_PI_2);
+      glm::vec3 topRight = sphericalToCartesian(
+          radius, (slice + 1) * sliceSize, (stack + 1) * stackSize - M_PI_2);
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      glm::vec3 normBottomLeft = glm::normalize(bottomLeft);
+      glm::vec3 normBottomRight = glm::normalize(bottomRight);
+      glm::vec3 normTopLeft = glm::normalize(topLeft);
+      glm::vec3 normTopRight = glm::normalize(topRight);
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
-      indexer.indices.push_back(indexer.addVertex(topRight));
+      glm::vec2 uvBottomLeft = {(float)slice / slices, (float)(stack) / stacks};
+      glm::vec2 uvBottomRight = {(float)(slice + 1) / slices,
+                                 (float)(stack) / stacks};
+      glm::vec2 uvTopLeft = {(float)slice / slices,
+                             (float)(stack + 1) / stacks};
+      glm::vec2 uvTopRight = {(float)(slice + 1) / slices,
+                              (float)(stack + 1) / stacks};
+
+      unsigned int i0 = posIdx.add(bottomLeft);
+      unsigned int i1 = posIdx.add(bottomRight);
+      unsigned int i2 = posIdx.add(topLeft);
+      unsigned int i3 = posIdx.add(topRight);
+
+      unsigned int n0 = normIdx.add(normBottomLeft);
+      unsigned int n1 = normIdx.add(normBottomRight);
+      unsigned int n2 = normIdx.add(normTopLeft);
+      unsigned int n3 = normIdx.add(normTopRight);
+
+      unsigned int t0 = uvIdx.add(uvBottomLeft);
+      unsigned int t1 = uvIdx.add(uvBottomRight);
+      unsigned int t2 = uvIdx.add(uvTopLeft);
+      unsigned int t3 = uvIdx.add(uvTopRight);
+
+      model.indices.push_back({i0, t0, n0});
+      model.indices.push_back({i1, t1, n1});
+      model.indices.push_back({i2, t2, n2});
+
+      model.indices.push_back({i2, t2, n2});
+      model.indices.push_back({i1, t1, n1});
+      model.indices.push_back({i3, t3, n3});
     }
   }
-  return {indexer.vertices, indexer.indices};
+
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+
+  return model;
 }
 
 /**
@@ -135,35 +222,65 @@ Model Sphere(float radius, int slices, int stacks) {
  * @return A Model object containing the vertices of the generated plane.
  */
 Model Plane(float length, int divisions) {
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
 
-  float divisionSize = length / divisions;
-  float halfLength = length / 2.0f;
+  AttributeIndexer<glm::vec3> posIdx;
+  AttributeIndexer<glm::vec3> normIdx;
+  AttributeIndexer<glm::vec2> uvIdx;
 
-  // VERTICES
+  float half = length / 2.0f;
+  float step = length / divisions;
+
+  glm::vec3 normal(0, 1, 0);
 
   for (int x = 0; x < divisions; x++) {
     for (int z = 0; z < divisions; z++) {
-      float xPos = (x * divisionSize) - halfLength;
-      float zPos = (z * divisionSize) - halfLength;
-      float xNext = ((x + 1) * divisionSize) - halfLength;
-      float zNext = ((z + 1) * divisionSize) - halfLength;
+      float x0 = -half + x * step;
+      float z0 = -half + z * step;
+      float x1 = x0 + step;
+      float z1 = z0 + step;
 
-      vec3 bottomLeft = vec3(xPos, 0, zPos);
-      vec3 bottomRight = vec3(xNext, 0, zPos);
-      vec3 topLeft = vec3(xPos, 0, zNext);
-      vec3 topRight = vec3(xNext, 0, zNext);
+      glm::vec3 p0(x0, 0, z0);
+      glm::vec3 p1(x1, 0, z0);
+      glm::vec3 p2(x0, 0, z1);
+      glm::vec3 p3(x1, 0, z1);
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      float xTexCoord0 = (x0 + half) / length;
+      float xTexCoord1 = (x1 + half) / length;
+      float zTexCoord0 = (z0 + half) / length;
+      float zTexCoord1 = (z1 + half) / length;
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
-      indexer.indices.push_back(indexer.addVertex(topRight));
+      glm::vec2 uv0(xTexCoord0, zTexCoord0);
+      glm::vec2 uv1(xTexCoord1, zTexCoord0);
+      glm::vec2 uv2(xTexCoord0, zTexCoord1);
+      glm::vec2 uv3(xTexCoord1, zTexCoord1);
+
+      unsigned int i0 = posIdx.add(p0);
+      unsigned int i1 = posIdx.add(p1);
+      unsigned int i2 = posIdx.add(p2);
+      unsigned int i3 = posIdx.add(p3);
+
+      unsigned int n = normIdx.add(normal);
+
+      unsigned int t0 = uvIdx.add(uv0);
+      unsigned int t1 = uvIdx.add(uv1);
+      unsigned int t2 = uvIdx.add(uv2);
+      unsigned int t3 = uvIdx.add(uv3);
+
+      model.indices.push_back({i1, t1, n});
+      model.indices.push_back({i0, t0, n});
+      model.indices.push_back({i2, t2, n});
+
+      model.indices.push_back({i1, t1, n});
+      model.indices.push_back({i2, t2, n});
+      model.indices.push_back({i3, t3, n});
     }
   }
-  return {indexer.vertices, indexer.indices};
+
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+  return model;
 }
 
 /**
@@ -174,70 +291,131 @@ Model Plane(float length, int divisions) {
  * @return Model The generated 3D box model containing the vertices.
  */
 Model Box(float size, int divisions) {
+  Model model;
+  AttributeIndexer<glm::vec3> posIdx;
+  AttributeIndexer<glm::vec3> normIdx;
+  AttributeIndexer<glm::vec2> uvIdx;
+
   float halfSize = size / 2.0f;
   float step = size / divisions;
-  VertexIndexer<vec3, Vec3Hash> indexer;
 
-  // VERTICES
+  const glm::vec3 normals[6] = {
+      {0, 0, 1},   // Front
+      {0, 0, -1},  // Back
+      {-1, 0, 0},  // Left
+      {1, 0, 0},   // Right
+      {0, 1, 0},   // Top
+      {0, -1, 0}   // Bottom
+  };
 
-  for (int i = 0; i < divisions; ++i) {
-    for (int j = 0; j < divisions; ++j) {
-      float v1 = -halfSize + i * step;
-      float u1 = -halfSize + j * step;
-      float v2 = v1 + step;
-      float u2 = u1 + step;
+  // For each face of the cube
+  for (int face = 0; face < 6; face++) {
+    unsigned int n = normIdx.add(normals[face]);
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, u1, halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, u2, halfSize)));
+    for (int i = 0; i < divisions; i++) {
+      for (int j = 0; j < divisions; j++) {
+        float u1 = -halfSize + i * step;
+        float v1 = -halfSize + j * step;
+        float u2 = u1 + step;
+        float v2 = v1 + step;
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, u2, halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, u2, halfSize)));
+        float tu1 = (float)i / divisions;
+        float tv1 = (float)j / divisions;
+        float tu2 = (float)(i + 1) / divisions;
+        float tv2 = (float)(j + 1) / divisions;
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, u1, -halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, u2, -halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, -halfSize)));
+        glm::vec3 p[4];
+        glm::vec2 uv[4];
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, u2, -halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, -halfSize)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, u1, -halfSize)));
+        uv[0] = {tu1, tv1};
+        uv[1] = {tu2, tv1};
+        uv[2] = {tu1, tv2};
+        uv[3] = {tu2, tv2};
 
-      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v1, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v1, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v2, u1)));
+        switch (face) {
+          case 0:  // Front face
+            p[0] = {u1, v1, halfSize};
+            p[1] = {u2, v1, halfSize};
+            p[2] = {u1, v2, halfSize};
+            p[3] = {u2, v2, halfSize};
+            break;
+          case 1:  // Back face
+            p[0] = {u2, v1, -halfSize};
+            p[1] = {u1, v1, -halfSize};
+            p[2] = {u2, v2, -halfSize};
+            p[3] = {u1, v2, -halfSize};
 
-      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v1, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v2, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(-halfSize, v2, u1)));
+            uv[0] = {tu2, tv1};
+            uv[1] = {tu1, tv1};
+            uv[2] = {tu2, tv2};
+            uv[3] = {tu1, tv2};
+            break;
+          case 2:  // Left face
+            p[0] = {-halfSize, v1, u1};
+            p[1] = {-halfSize, v1, u2};
+            p[2] = {-halfSize, v2, u1};
+            p[3] = {-halfSize, v2, u2};
 
-      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v1, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v2, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v1, u2)));
+            uv[0] = {1.0f - tu1, tv1};
+            uv[1] = {1.0f - tu2, tv1};
+            uv[2] = {1.0f - tu1, tv2};
+            uv[3] = {1.0f - tu2, tv2};
+            break;
+          case 3:  // Right face
+            p[0] = {halfSize, v1, u2};
+            p[1] = {halfSize, v1, u1};
+            p[2] = {halfSize, v2, u2};
+            p[3] = {halfSize, v2, u1};
 
-      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v1, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v2, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(halfSize, v2, u2)));
+            uv[0] = {tu2, tv1};
+            uv[1] = {tu1, tv1};
+            uv[2] = {tu2, tv2};
+            uv[3] = {tu1, tv2};
+            break;
+          case 4:  // Top face
+            p[0] = {u1, halfSize, v2};
+            p[1] = {u2, halfSize, v2};
+            p[2] = {u1, halfSize, v1};
+            p[3] = {u2, halfSize, v1};
+            break;
+          case 5:  // Bottom face
+            p[0] = {u1, -halfSize, v1};
+            p[1] = {u2, -halfSize, v1};
+            p[2] = {u1, -halfSize, v2};
+            p[3] = {u2, -halfSize, v2};
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, halfSize, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, halfSize, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, halfSize, u1)));
+            uv[0] = {tu1, tv2};
+            uv[1] = {tu2, tv2};
+            uv[2] = {tu1, tv1};
+            uv[3] = {tu2, tv1};
+            break;
+        }
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, halfSize, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, halfSize, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, halfSize, u1)));
+        unsigned int i0 = posIdx.add(p[0]);
+        unsigned int i1 = posIdx.add(p[1]);
+        unsigned int i2 = posIdx.add(p[2]);
+        unsigned int i3 = posIdx.add(p[3]);
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, -halfSize, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, -halfSize, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, -halfSize, u2)));
+        unsigned int t0 = uvIdx.add(uv[0]);
+        unsigned int t1 = uvIdx.add(uv[1]);
+        unsigned int t2 = uvIdx.add(uv[2]);
+        unsigned int t3 = uvIdx.add(uv[3]);
 
-      indexer.indices.push_back(indexer.addVertex(vec3(v1, -halfSize, u2)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, -halfSize, u1)));
-      indexer.indices.push_back(indexer.addVertex(vec3(v2, -halfSize, u2)));
+        model.indices.push_back({i0, t0, n});
+        model.indices.push_back({i1, t1, n});
+        model.indices.push_back({i2, t2, n});
+
+        model.indices.push_back({i2, t2, n});
+        model.indices.push_back({i1, t1, n});
+        model.indices.push_back({i3, t3, n});
+      }
     }
   }
 
-  return Model{indexer.vertices, indexer.indices};
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+  return model;
 }
 
 /**
@@ -252,59 +430,118 @@ Model Box(float size, int divisions) {
  * @return A Model object containing the vertices of the cylinder.
  */
 Model Cylinder(float radius, float height, int slices, int stacks) {
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
+  AttributeIndexer<glm::vec3> posIdx;
+  AttributeIndexer<glm::vec3> normIdx;
+  AttributeIndexer<glm::vec2> uvIdx;
 
   float sliceSize = 2 * M_PI / slices;
+  float stackSize = height / stacks;
   float halfHeight = height / 2.0f;
 
-  vec3 baseMiddle = vec3(0, -halfHeight, 0);
-  vec3 topMiddle = vec3(0, halfHeight, 0);
-
-  // SIDE FACES
+  // Sides
   for (int slice = 0; slice < slices; slice++) {
     float angle1 = slice * sliceSize;
     float angle2 = (slice + 1) * sliceSize;
-    float stackSize = height / stacks;
+
+    glm::vec3 normal1 = glm::normalize(glm::vec3(cos(angle1), 0, sin(angle1)));
+    glm::vec3 normal2 = glm::normalize(glm::vec3(cos(angle2), 0, sin(angle2)));
+
+    float u0 = (float)slice / slices;
+    float u1 = (float)(slice + 1) / slices;
 
     for (int stack = 0; stack < stacks; stack++) {
-      float currentHeight = stack * stackSize - halfHeight;
-      float nextHeight = (stack + 1) * stackSize - halfHeight;
+      float y0 = stack * stackSize - halfHeight;
+      float y1 = (stack + 1) * stackSize - halfHeight;
+      float v0 = (float)stack / stacks;
+      float v1 = (float)(stack + 1) / stacks;
 
-      vec3 bottomLeft = polarToCartesian(radius, angle1, currentHeight);
-      vec3 bottomRight = polarToCartesian(radius, angle2, currentHeight);
-      vec3 topLeft = polarToCartesian(radius, angle1, nextHeight);
-      vec3 topRight = polarToCartesian(radius, angle2, nextHeight);
+      glm::vec3 bl = glm::vec3(radius * cos(angle1), y0, radius * sin(angle1));
+      glm::vec3 br = glm::vec3(radius * cos(angle2), y0, radius * sin(angle2));
+      glm::vec3 tl = glm::vec3(radius * cos(angle1), y1, radius * sin(angle1));
+      glm::vec3 tr = glm::vec3(radius * cos(angle2), y1, radius * sin(angle2));
 
-      indexer.indices.push_back(indexer.addVertex(bottomLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
-      indexer.indices.push_back(indexer.addVertex(topLeft));
+      unsigned int i0 = posIdx.add(bl);
+      unsigned int i1 = posIdx.add(br);
+      unsigned int i2 = posIdx.add(tl);
+      unsigned int i3 = posIdx.add(tr);
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
-      indexer.indices.push_back(indexer.addVertex(topRight));
+      unsigned int n0 = normIdx.add(normal1);
+      unsigned int n1 = normIdx.add(normal2);
+      unsigned int n2 = normIdx.add(normal1);
+      unsigned int n3 = normIdx.add(normal2);
+
+      unsigned int t0 = uvIdx.add({u0, v0});
+      unsigned int t1 = uvIdx.add({u1, v0});
+      unsigned int t2 = uvIdx.add({u0, v1});
+      unsigned int t3 = uvIdx.add({u1, v1});
+
+      model.indices.push_back({i0, t0, n0});
+      model.indices.push_back({i2, t2, n2});
+      model.indices.push_back({i1, t1, n1});
+
+      model.indices.push_back({i2, t2, n2});
+      model.indices.push_back({i3, t3, n3});
+      model.indices.push_back({i1, t1, n1});
     }
   }
 
-  // BASES
+  // Base and top
+  glm::vec3 baseCenter = glm::vec3(0, -halfHeight, 0);
+  glm::vec3 topCenter = glm::vec3(0, halfHeight, 0);
+  glm::vec3 baseNormal = glm::vec3(0, -1, 0);
+  glm::vec3 topNormal = glm::vec3(0, 1, 0);
+  unsigned int baseCenterIdx = posIdx.add(baseCenter);
+  unsigned int topCenterIdx = posIdx.add(topCenter);
+  unsigned int baseNormIdx = normIdx.add(baseNormal);
+  unsigned int topNormIdx = normIdx.add(topNormal);
+  unsigned int baseUvIdx = uvIdx.add({0.5f, 0.5f});
+  unsigned int topUvIdx = uvIdx.add({0.5f, 0.5f});
+
   for (int slice = 0; slice < slices; slice++) {
     float angle1 = slice * sliceSize;
     float angle2 = (slice + 1) * sliceSize;
 
-    vec3 baseLeft = polarToCartesian(radius, angle1, -halfHeight);
-    vec3 baseRight = polarToCartesian(radius, angle2, -halfHeight);
-    vec3 topLeft = polarToCartesian(radius, angle1, halfHeight);
-    vec3 topRight = polarToCartesian(radius, angle2, halfHeight);
+    glm::vec3 b1 =
+        glm::vec3(radius * cos(angle1), -halfHeight, radius * sin(angle1));
+    glm::vec3 b2 =
+        glm::vec3(radius * cos(angle2), -halfHeight, radius * sin(angle2));
+    glm::vec3 t1 =
+        glm::vec3(radius * cos(angle1), halfHeight, radius * sin(angle1));
+    glm::vec3 t2 =
+        glm::vec3(radius * cos(angle2), halfHeight, radius * sin(angle2));
 
-    indexer.indices.push_back(indexer.addVertex(baseMiddle));
-    indexer.indices.push_back(indexer.addVertex(baseRight));
-    indexer.indices.push_back(indexer.addVertex(baseLeft));
+    glm::vec2 uv_b1 = {0.5f + 0.5f * cos(angle1), 0.5f + 0.5f * sin(angle1)};
+    glm::vec2 uv_b2 = {0.5f + 0.5f * cos(angle2), 0.5f + 0.5f * sin(angle2)};
+    glm::vec2 uv_t1 = uv_b1;
+    glm::vec2 uv_t2 = uv_b2;
 
-    indexer.indices.push_back(indexer.addVertex(topMiddle));
-    indexer.indices.push_back(indexer.addVertex(topLeft));
-    indexer.indices.push_back(indexer.addVertex(topRight));
+    unsigned int i_b1 = posIdx.add(b1);
+    unsigned int i_b2 = posIdx.add(b2);
+    unsigned int i_t1 = posIdx.add(t1);
+    unsigned int i_t2 = posIdx.add(t2);
+
+    unsigned int t_b1 = uvIdx.add(uv_b1);
+    unsigned int t_b2 = uvIdx.add(uv_b2);
+    unsigned int t_t1 = uvIdx.add(uv_t1);
+    unsigned int t_t2 = uvIdx.add(uv_t2);
+
+    // Base triangle
+    model.indices.push_back({baseCenterIdx, baseUvIdx, baseNormIdx});
+    model.indices.push_back({i_b1, t_b1, baseNormIdx});
+    model.indices.push_back({i_b2, t_b2, baseNormIdx});
+
+    // Top triangle
+    model.indices.push_back({topCenterIdx, topUvIdx, topNormIdx});
+    model.indices.push_back({i_t2, t_t2, topNormIdx});
+    model.indices.push_back({i_t1, t_t1, topNormIdx});
   }
 
-  return {indexer.vertices, indexer.indices};
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+
+  return model;
 }
 
 /**
@@ -318,39 +555,81 @@ Model Cylinder(float radius, float height, int slices, int stacks) {
  * @return A Model object containing the vertices of the torus.
  */
 Model Torus(float radius, float tubeRadius, int slices, int stacks) {
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
+  AttributeIndexer<vec3> posIdx;
+  AttributeIndexer<vec3> normIdx;
+  AttributeIndexer<vec2> uvIdx;
 
   for (int stack = 0; stack < stacks; stack++) {
-    float theta1 = 2 * stack * M_PI / stacks;
-    float theta2 = 2 * (stack + 1) * M_PI / stacks;
+    float theta1 = 2.0f * M_PI * stack / stacks;
+    float theta2 = 2.0f * M_PI * (stack + 1) / stacks;
 
     for (int slice = 0; slice < slices; slice++) {
-      float phi1 = 2 * slice * M_PI / slices;
-      float phi2 = 2 * (slice + 1) * M_PI / slices;
+      float phi1 = 2.0f * M_PI * slice / slices;
+      float phi2 = 2.0f * M_PI * (slice + 1) / slices;
 
       vec3 topLeft = vec3((radius + tubeRadius * cos(phi1)) * cos(theta1),
                           tubeRadius * sin(phi1),
                           (radius + tubeRadius * cos(phi1)) * sin(theta1));
+
       vec3 topRight = vec3((radius + tubeRadius * cos(phi1)) * cos(theta2),
                            tubeRadius * sin(phi1),
                            (radius + tubeRadius * cos(phi1)) * sin(theta2));
+
       vec3 bottomLeft = vec3((radius + tubeRadius * cos(phi2)) * cos(theta1),
                              tubeRadius * sin(phi2),
                              (radius + tubeRadius * cos(phi2)) * sin(theta1));
+
       vec3 bottomRight = vec3((radius + tubeRadius * cos(phi2)) * cos(theta2),
                               tubeRadius * sin(phi2),
                               (radius + tubeRadius * cos(phi2)) * sin(theta2));
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
+      // Normals
+      vec3 center1 = vec3(radius * cos(theta1), 0, radius * sin(theta1));
+      vec3 center2 = vec3(radius * cos(theta2), 0, radius * sin(theta2));
 
-      indexer.indices.push_back(indexer.addVertex(topLeft));
-      indexer.indices.push_back(indexer.addVertex(bottomRight));
-      indexer.indices.push_back(indexer.addVertex(topRight));
+      vec3 n_tl = normalize(topLeft - center1);
+      vec3 n_tr = normalize(topRight - center2);
+      vec3 n_bl = normalize(bottomLeft - center1);
+      vec3 n_br = normalize(bottomRight - center2);
+
+      // UVs
+      vec2 uv_tl = vec2((float)stack / stacks, (float)slice / slices);
+      vec2 uv_tr = vec2((float)(stack + 1) / stacks, (float)slice / slices);
+      vec2 uv_bl = vec2((float)stack / stacks, (float)(slice + 1) / slices);
+      vec2 uv_br =
+          vec2((float)(stack + 1) / stacks, (float)(slice + 1) / slices);
+
+      unsigned int i0 = posIdx.add(topLeft);
+      unsigned int i1 = posIdx.add(bottomLeft);
+      unsigned int i2 = posIdx.add(bottomRight);
+      unsigned int i3 = posIdx.add(topRight);
+
+      unsigned int n0 = normIdx.add(n_tl);
+      unsigned int n1 = normIdx.add(n_bl);
+      unsigned int n2 = normIdx.add(n_br);
+      unsigned int n3 = normIdx.add(n_tr);
+
+      unsigned int t0 = uvIdx.add(uv_tl);
+      unsigned int t1 = uvIdx.add(uv_bl);
+      unsigned int t2 = uvIdx.add(uv_br);
+      unsigned int t3 = uvIdx.add(uv_tr);
+
+      model.indices.push_back({i0, t0, n0});
+      model.indices.push_back({i1, t1, n1});
+      model.indices.push_back({i2, t2, n2});
+
+      model.indices.push_back({i0, t0, n0});
+      model.indices.push_back({i2, t2, n2});
+      model.indices.push_back({i3, t3, n3});
     }
   }
-  return {indexer.vertices, indexer.indices};
+
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+
+  return model;
 }
 
 /**
@@ -362,15 +641,14 @@ Model Torus(float radius, float tubeRadius, int slices, int stacks) {
  * @return A Model object containing the vertices of the generated icosphere.
  */
 Model Icosphere(float radius, int subdivisions) {
-  if (subdivisions < 1) {
-    return {};
-  }
-
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
+  AttributeIndexer<vec3> posIdx;
+  AttributeIndexer<vec3> normIdx;
+  AttributeIndexer<vec2> uvIdx;
 
   float t = (1.0f + sqrt(5.0f)) / 2.0f;
 
-  vector<vec3> icosahedronVertices = {
+  vector<vec3> vertices = {
       glm::normalize(vec3(-1, t, 0)),  glm::normalize(vec3(1, t, 0)),
       glm::normalize(vec3(-1, -t, 0)), glm::normalize(vec3(1, -t, 0)),
       glm::normalize(vec3(0, -1, t)),  glm::normalize(vec3(0, 1, t)),
@@ -378,71 +656,108 @@ Model Icosphere(float radius, int subdivisions) {
       glm::normalize(vec3(t, 0, -1)),  glm::normalize(vec3(t, 0, 1)),
       glm::normalize(vec3(-t, 0, -1)), glm::normalize(vec3(-t, 0, 1))};
 
-  vector<vec3> icosahedronFaces = {
-      vec3(0, 11, 5),  vec3(0, 5, 1),  vec3(0, 1, 7),  vec3(0, 7, 10),
-      vec3(0, 10, 11), vec3(1, 5, 9),  vec3(5, 11, 4), vec3(11, 10, 2),
-      vec3(10, 7, 6),  vec3(7, 1, 8),  vec3(3, 9, 4),  vec3(3, 4, 2),
-      vec3(3, 2, 6),   vec3(3, 6, 8),  vec3(3, 8, 9),  vec3(4, 9, 5),
-      vec3(2, 4, 11),  vec3(6, 2, 10), vec3(8, 6, 7),  vec3(9, 8, 1)};
+  vector<glm::ivec3> faces = {{0, 11, 5},  {0, 5, 1},  {0, 1, 7},  {0, 7, 10},
+                              {0, 10, 11}, {1, 5, 9},  {5, 11, 4}, {11, 10, 2},
+                              {10, 7, 6},  {7, 1, 8},  {3, 9, 4},  {3, 4, 2},
+                              {3, 2, 6},   {3, 6, 8},  {3, 8, 9},  {4, 9, 5},
+                              {2, 4, 11},  {6, 2, 10}, {8, 6, 7},  {9, 8, 1}};
 
-  if (subdivisions != 1) {
-    for (int i = 0; i < subdivisions - 1; i++) {
-      vector<vec3> newVertices;
-      vector<vec3> newFaces;
+  // Subdivision helper: caches midpoints so we don't duplicate them
+  std::unordered_map<uint64_t, int> midpointCache;
+  auto getMidpoint = [&](int a, int b) -> int {
+    uint64_t key = (uint64_t)std::min(a, b) << 32 | std::max(a, b);
+    if (auto it = midpointCache.find(key); it != midpointCache.end())
+      return it->second;
 
-      for (const auto& face : icosahedronFaces) {
-        vec3 a = icosahedronVertices[face.x];
-        vec3 b = icosahedronVertices[face.y];
-        vec3 c = icosahedronVertices[face.z];
+    vec3 mid = glm::normalize((vertices[a] + vertices[b]) * 0.5f);
+    vertices.push_back(mid);
+    return midpointCache[key] = vertices.size() - 1;
+  };
 
-        vec3 ab = glm::normalize((a + b) / 2.0f);
-        vec3 bc = glm::normalize((b + c) / 2.0f);
-        vec3 ca = glm::normalize((c + a) / 2.0f);
-
-        int indexA = newVertices.size();
-        newVertices.push_back(a);
-        int indexB = newVertices.size();
-        newVertices.push_back(b);
-        int indexC = newVertices.size();
-        newVertices.push_back(c);
-        int indexAB = newVertices.size();
-        newVertices.push_back(ab);
-        int indexBC = newVertices.size();
-        newVertices.push_back(bc);
-        int indexCA = newVertices.size();
-        newVertices.push_back(ca);
-
-        newFaces.push_back(vec3(indexA, indexAB, indexCA));
-        newFaces.push_back(vec3(indexAB, indexB, indexBC));
-        newFaces.push_back(vec3(indexBC, indexC, indexCA));
-        newFaces.push_back(vec3(indexAB, indexBC, indexCA));
-      }
-
-      icosahedronVertices = newVertices;
-      icosahedronFaces = newFaces;
+  for (int i = 0; i < subdivisions; ++i) {
+    vector<glm::ivec3> newFaces;
+    for (const auto& f : faces) {
+      int a = f.x, b = f.y, c = f.z;
+      int ab = getMidpoint(a, b);
+      int bc = getMidpoint(b, c);
+      int ca = getMidpoint(c, a);
+      newFaces.push_back({a, ab, ca});
+      newFaces.push_back({b, bc, ab});
+      newFaces.push_back({c, ca, bc});
+      newFaces.push_back({ab, bc, ca});
     }
-
-  } else {
-    vector<vec3> newVertices;
-
-    for (const auto& face : icosahedronFaces) {
-      vec3 a = icosahedronVertices[face.x];
-      vec3 b = icosahedronVertices[face.y];
-      vec3 c = icosahedronVertices[face.z];
-
-      indexer.indices.push_back(indexer.addVertex(a * radius));
-      indexer.indices.push_back(indexer.addVertex(b * radius));
-      indexer.indices.push_back(indexer.addVertex(c * radius));
-    }
-
-    icosahedronVertices = newVertices;
+    faces = std::move(newFaces);
   }
 
-  for (const auto& vertex : icosahedronVertices) {
-    indexer.indices.push_back(indexer.addVertex(vertex * radius));
+  // Dirty fix for UV seams
+  auto fixSeamUVs = [](const vec2& uv1, const vec2& uv2,
+                       const vec2& uv3) -> std::tuple<vec2, vec2, vec2> {
+    // Check if we're crossing the seam (large U difference)
+    float u1 = uv1.x, u2 = uv2.x, u3 = uv3.x;
+
+    // Find max and min U values - avoiding initializer_list
+    float maxU = u1;
+    if (u2 > maxU) maxU = u2;
+    if (u3 > maxU) maxU = u3;
+
+    float minU = u1;
+    if (u2 < minU) minU = u2;
+    if (u3 < minU) minU = u3;
+
+    // If the U range is greater than 0.5, we're crossing the seam
+    if (maxU - minU > 0.5f) {
+      // Create copies of the UVs
+      vec2 newUV1 = uv1;
+      vec2 newUV2 = uv2;
+      vec2 newUV3 = uv3;
+
+      // If a U coordinate is less than 0.5, add 1.0 to it
+      if (u1 < 0.5f && maxU > 0.75f) newUV1.x += 1.0f;
+      if (u2 < 0.5f && maxU > 0.75f) newUV2.x += 1.0f;
+      if (u3 < 0.5f && maxU > 0.75f) newUV3.x += 1.0f;
+
+      return {newUV1, newUV2, newUV3};
+    }
+
+    // If we're not crossing the seam, return the original UVs
+    return {uv1, uv2, uv3};
+  };
+
+  // Add positions, normals, UVs and indices
+  for (const auto& f : faces) {
+    std::vector<vec2> faceUVs;
+    std::vector<int> vertexIndices;
+
+    for (int i = 0; i < 3; ++i) {
+      int vi = f[i];
+      vec3 norm = vertices[vi];
+      float u = atan2(norm.z, norm.x) / (2 * M_PI) + 0.5f;
+      float v = acos(norm.y) / M_PI;
+      faceUVs.push_back(vec2(u, v));
+      vertexIndices.push_back(vi);
+    }
+
+    auto [uv1, uv2, uv3] = fixSeamUVs(faceUVs[0], faceUVs[1], faceUVs[2]);
+
+    for (int i = 0; i < 3; ++i) {
+      int vi = vertexIndices[i];
+      vec3 pos = vertices[vi] * radius;
+      vec3 norm = vertices[vi];
+      vec2 uv = (i == 0) ? uv1 : ((i == 1) ? uv2 : uv3);
+
+      unsigned int pi = posIdx.add(pos);
+      unsigned int ni = normIdx.add(norm);
+      unsigned int ti = uvIdx.add(uv);
+
+      model.indices.push_back({pi, ti, ni});
+    }
   }
 
-  return {indexer.vertices, indexer.indices};
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+
+  return model;
 }
 
 /**
@@ -450,11 +765,16 @@ Model Icosphere(float radius, int subdivisions) {
  *
  * @param control_points The control points of the Bezier patch.
  * @param tesselation_level The level of tessellation for the patch.
- * @return A vector of vertices representing the Bezier patch.
+ * @return A tuple of positions, normals, and texture coordinates.
  */
-std::vector<vec3> BezierPatch(const std::array<vec3, 16>& control_points,
-                              const size_t tesselation_level) {
-  std::vector<vec3> vertices((tesselation_level + 1) * (tesselation_level + 1));
+std::tuple<std::vector<vec3>, std::vector<vec3>, std::vector<vec2>> BezierPatch(
+    const std::array<vec3, 16>& control_points,
+    const size_t tesselation_level) {
+  std::vector<vec3> positions((tesselation_level + 1) *
+                              (tesselation_level + 1));
+  std::vector<vec3> normals((tesselation_level + 1) * (tesselation_level + 1));
+  std::vector<vec2> texcoords((tesselation_level + 1) *
+                              (tesselation_level + 1));
 
   glm::mat4 bernstein_matrix =
       glm::mat4(-1, 3, -3, 1, 3, -6, 3, 0, -3, 3, 0, 0, 1, 0, 0, 0);
@@ -479,13 +799,52 @@ std::vector<vec3> BezierPatch(const std::array<vec3, 16>& control_points,
         vec4 u_vector = {u * u * u, u * u, u, 1};
         vec4 v_vector = {v * v * v, v * v, v, 1};
 
-        vertices[j * (tesselation_level + 1) + k][i] =
+        positions[j * (tesselation_level + 1) + k][i] =
             glm::dot(v_vector, result_matrix * u_vector);
       }
     }
   }
 
-  return vertices;
+  for (int j = 0; j <= tesselation_level; j++) {
+    for (int k = 0; k <= tesselation_level; k++) {
+      float u = static_cast<float>(j) / tesselation_level;
+      float v = static_cast<float>(k) / tesselation_level;
+      int idx = j * (tesselation_level + 1) + k;
+
+      vec3 tangent_u, tangent_v;
+
+      // For tangent_u: calculate partial derivative with respect to u
+      if (j > 0 && j < tesselation_level) {
+        tangent_u = positions[(j + 1) * (tesselation_level + 1) + k] -
+                    positions[(j - 1) * (tesselation_level + 1) + k];
+      } else if (j == 0) {
+        tangent_u = positions[(j + 1) * (tesselation_level + 1) + k] -
+                    positions[j * (tesselation_level + 1) + k];
+      } else {  // j == tesselation_level
+        tangent_u = positions[j * (tesselation_level + 1) + k] -
+                    positions[(j - 1) * (tesselation_level + 1) + k];
+      }
+
+      // For tangent_v: calculate partial derivative with respect to v
+      if (k > 0 && k < tesselation_level) {
+        tangent_v = positions[j * (tesselation_level + 1) + (k + 1)] -
+                    positions[j * (tesselation_level + 1) + (k - 1)];
+      } else if (k == 0) {
+        tangent_v = positions[j * (tesselation_level + 1) + (k + 1)] -
+                    positions[j * (tesselation_level + 1) + k];
+      } else {
+        tangent_v = positions[j * (tesselation_level + 1) + k] -
+                    positions[j * (tesselation_level + 1) + (k - 1)];
+      }
+
+      // Normal is the cross product of tangent vectors
+      normals[idx] = glm::normalize(glm::cross(tangent_v, tangent_u));
+
+      texcoords[idx] = vec2(u, v);
+    }
+  }
+
+  return {positions, normals, texcoords};
 }
 
 /**
@@ -538,46 +897,59 @@ Model BezierSurface(const std::string patch, int tessellation) {
 
   file.close();
 
-  // Generate model
-  VertexIndexer<vec3, Vec3Hash> indexer;
+  Model model;
+  AttributeIndexer<glm::vec3> posIdx;
+  AttributeIndexer<glm::vec3> normIdx;
+  AttributeIndexer<glm::vec2> uvIdx;
 
-  uint32_t start = 0;
   for (const auto& patch : patches) {
     std::array<glm::vec3, 16> patch_vertices;
     for (int i = 0; i < patch.size(); ++i) {
       patch_vertices[i] = control_points[patch[i]];
     }
 
-    std::vector<vec3> vertices = BezierPatch(patch_vertices, tessellation);
-    std::vector<std::vector<uint32_t>> index_grid(
-        tessellation + 1, std::vector<uint32_t>(tessellation + 1));
+    auto [positions, normals, texcoords] =
+        BezierPatch(patch_vertices, tessellation);
+
+    std::vector<std::vector<std::tuple<uint32_t, uint32_t, uint32_t>>>
+        index_grid(tessellation + 1,
+                   std::vector<std::tuple<uint32_t, uint32_t, uint32_t>>(
+                       tessellation + 1));
 
     for (int j = 0; j <= tessellation; ++j) {
       for (int k = 0; k <= tessellation; ++k) {
         int idx = j * (tessellation + 1) + k;
-        index_grid[j][k] = indexer.addVertex(vertices[idx]);
+        uint32_t pos_idx = posIdx.add(positions[idx]);
+        uint32_t norm_idx = normIdx.add(normals[idx]);
+        uint32_t uv_idx = uvIdx.add(texcoords[idx]);
+
+        index_grid[j][k] = {pos_idx, uv_idx, norm_idx};
       }
     }
 
     for (int z = 0; z < tessellation; ++z) {
       for (int x = 0; x < tessellation; ++x) {
-        uint32_t top_left = index_grid[z][x];
-        uint32_t top_right = index_grid[z][x + 1];
-        uint32_t bottom_left = index_grid[z + 1][x];
-        uint32_t bottom_right = index_grid[z + 1][x + 1];
+        auto [pos0, uv0, norm0] = index_grid[z][x];
+        auto [pos1, uv1, norm1] = index_grid[z][x + 1];
+        auto [pos2, uv2, norm2] = index_grid[z + 1][x];
+        auto [pos3, uv3, norm3] = index_grid[z + 1][x + 1];
 
-        indexer.indices.push_back(top_left);
-        indexer.indices.push_back(bottom_left);
-        indexer.indices.push_back(bottom_right);
+        model.indices.push_back({pos0, uv0, norm0});
+        model.indices.push_back({pos3, uv3, norm3});
+        model.indices.push_back({pos2, uv2, norm2});
 
-        indexer.indices.push_back(top_left);
-        indexer.indices.push_back(bottom_right);
-        indexer.indices.push_back(top_right);
+        model.indices.push_back({pos0, uv0, norm0});
+        model.indices.push_back({pos1, uv1, norm1});
+        model.indices.push_back({pos3, uv3, norm3});
       }
     }
   }
 
-  return {indexer.vertices, indexer.indices};
+  model.positions = std::move(posIdx.data);
+  model.normals = std::move(normIdx.data);
+  model.texcoords = std::move(uvIdx.data);
+
+  return model;
 }
 
 /**
@@ -594,38 +966,28 @@ Model BezierSurface(const std::string patch, int tessellation) {
  */
 bool Export(const Model& model, const std::string& filename) {
   std::ofstream file(filename);
-  if (!file.is_open()) {
-    return false;
-  }
+  if (!file.is_open()) return false;
 
-  // Write vertex positions
-  for (const auto& vertex : model.vertices) {
-    file << "v " << vertex.x << " " << vertex.y << " " << vertex.z << "\n";
-  }
+  for (const auto& v : model.positions)
+    file << "v " << v.x << " " << v.y << " " << v.z << "\n";
 
-  // Write faces (triangles)
+  for (const auto& vt : model.texcoords)
+    file << "vt " << vt.x << " " << vt.y << "\n";
+
+  for (const auto& vn : model.normals)
+    file << "vn " << vn.x << " " << vn.y << " " << vn.z << "\n";
+
   for (size_t i = 0; i < model.indices.size(); i += 3) {
-    // OBJ indices start at 1, not 0
-    unsigned int i1 = model.indices[i] + 1;
-    unsigned int i2 = model.indices[i + 1] + 1;
-    unsigned int i3 = model.indices[i + 2] + 1;
-    file << "f " << i1 << " " << i2 << " " << i3 << "\n";
+    auto idx = [&](const Model::IndexTriplet& t) {
+      return std::to_string(t.posIndex + 1) + "/" +
+             std::to_string(t.uvIndex + 1) + "/" +
+             std::to_string(t.normIndex + 1);
+    };
+    file << "f " << idx(model.indices[i]) << " " << idx(model.indices[i + 1])
+         << " " << idx(model.indices[i + 2]) << "\n";
   }
 
-  file.flush();
   return true;
-}
-
-Model Patch(std::string path, unsigned int tesselation) {
-  Model model;
-  std::ifstream file(path);
-  if (!file.is_open()) {
-    std::cerr << "Failed to open file: " << path << std::endl;
-    return model;
-  }
-
-  file.close();
-  return model;
 }
 
 }  // namespace generator
