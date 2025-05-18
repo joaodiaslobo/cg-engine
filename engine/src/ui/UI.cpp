@@ -136,6 +136,14 @@ void UI::render() {
       }
       ImGui::EndMenu();
     }
+
+    if (ImGui::BeginMenu("Options")) {
+      if (ImGui::MenuItem("Engine")) {
+        showOptionsWindow = !showOptionsWindow;
+      }
+      ImGui::EndMenu();
+    }
+
     ImGui::EndMainMenuBar();
   }
 
@@ -159,7 +167,61 @@ void UI::render() {
     if (scene) {
       DrawGroupTree(scene->getRoot(), "World", NodeType::WORLD);
     }
+
+    ImGui::SetNextWindowSizeConstraints(ImVec2(500.0f, 0),
+                                        ImVec2(500.0f, FLT_MAX));
+
+    if (showOptionsWindow) {
+      ImGui::Begin("Engine Options", &showOptionsWindow);
+
+      Engine* engine = static_cast<Engine*>(
+          glfwGetWindowUserPointer(window->getGlfwWindow()));
+      if (engine) {
+        Settings* settings = engine->getSettings();
+        if (settings) {
+          ImGui::Text("Show Normals");
+          ImGui::SameLine();
+          ImGui::Checkbox("##ShowNormals", &settings->showNormals);
+
+          ImGui::Text("Show Axis");
+          ImGui::SameLine();
+          ImGui::Checkbox("##ShowAxis", &settings->showAxis);
+
+          const char* viewModeItems[] = {"Wireframe", "Flat", "Shaded"};
+          int currentViewMode = static_cast<int>(settings->viewMode);
+
+          ImGui::Text("View Mode");
+          ImGui::SameLine();
+          if (ImGui::Combo("##ViewModeCombo", &currentViewMode, viewModeItems,
+                           IM_ARRAYSIZE(viewModeItems))) {
+            if (currentViewMode == 0) {
+              glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+              glDisable(GL_LIGHTING);
+            } else if (currentViewMode == 1) {
+              glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+              glDisable(GL_LIGHTING);
+            } else if (currentViewMode == 2) {
+              glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+              glEnable(GL_LIGHTING);
+            }
+            settings->viewMode = static_cast<ViewMode>(currentViewMode);
+          }
+
+          ImGui::Text("Simulation");
+          ImGui::SameLine();
+          if (ImGui::Button(settings->isPaused ? ICON_FA_PLAY
+                                               : ICON_FA_PAUSE)) {
+            settings->isPaused = !settings->isPaused;
+          }
+        }
+      } else {
+        ImGui::Text("Error loading engine.");
+      }
+
+      ImGui::End();
+    }
   }
+
   ImGui::End();
 
   ImGui::Render();

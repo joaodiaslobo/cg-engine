@@ -25,7 +25,7 @@ bool Engine::initialize() {
 
   ui.initialize(&window);
 
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   return true;
 }
@@ -218,7 +218,7 @@ bool Engine::initializeFromFile(const string& filename) {
 
   setupProjectionAndView();
 
-  glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   return true;
 }
@@ -302,7 +302,10 @@ void Engine::run() {
     glfwPollEvents();
 
     camera.update(deltaTime);
-    scene.updateTime(deltaTime);
+
+    if (!settings.getPaused()) {
+      scene.updateTime(deltaTime);
+    }
 
     render();
     glfwSwapBuffers(window.getGlfwWindow());
@@ -391,7 +394,9 @@ void Engine::render() {
 
   scene.render(settings.getViewmode(), settings.getShowNormals());
 
-  renderSceneAxis();
+  if (settings.getShowAxis()) {
+    renderSceneAxis();
+  }
 
   ui.postRender();
 }

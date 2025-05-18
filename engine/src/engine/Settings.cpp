@@ -23,3 +23,7 @@ void Settings::toggleViewmode() {
 void Settings::toggleNormals() { showNormals = !showNormals; }
 
 ViewMode Settings::getViewmode() { return viewMode; }
+
+bool Settings::getShowAxis() { return showAxis; }
+
+bool Settings::getPaused() { return isPaused; }
