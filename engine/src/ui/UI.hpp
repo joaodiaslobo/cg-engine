@@ -21,6 +21,8 @@
 #define ICON_FA_LIGHTBULB ""
 #define ICON_FA_SUN ""
 #define ICON_FA_SPOTLIGHT ""
+#define ICON_FA_PAUSE ""
+#define ICON_FA_PLAY ""
 
 enum class NodeType {
   WORLD,
@@ -40,6 +42,7 @@ class UI {
   float fps = 0.0f;
   ImGuiIO* io = nullptr;
   bool enabled = true;
+  bool showOptionsWindow = false;
 
  public:
   void toggleUI();
