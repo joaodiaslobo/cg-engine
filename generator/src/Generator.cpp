@@ -55,6 +55,9 @@ Model Cone(float radius, float height, int slices, int stacks) {
   float sliceSize = 2 * M_PI / slices;
   float stackSize = height / stacks;
 
+  float coneAngle = atan2(radius, height);
+  float normalScale = cos(coneAngle);
+
   glm::vec3 tip = {0, height, 0};
   glm::vec3 baseMiddle = {0, 0, 0};
 
@@ -77,8 +80,26 @@ Model Cone(float radius, float height, int slices, int stacks) {
       glm::vec3 topRight = polarToCartesian(nextRadius, (slice + 1) * sliceSize,
                                             (stack + 1) * stackSize);
 
-      glm::vec3 sideNormal = glm::normalize(
-          glm::cross(bottomRight - bottomLeft, topLeft - bottomLeft));
+      auto calculateConeNormal = [&](const glm::vec3& pos) -> glm::vec3 {
+        float radialDist = sqrt(pos.x * pos.x + pos.z * pos.z);
+        if (radialDist < 1e-6f) {
+          float angle = slice * sliceSize;
+          return glm::normalize(glm::vec3(cos(angle) * normalScale,
+                                          sin(coneAngle),
+                                          sin(angle) * normalScale));
+        } else {
+          glm::vec3 radialDir =
+              glm::vec3(pos.x / radialDist, 0, pos.z / radialDist);
+          return glm::normalize(glm::vec3(radialDir.x * normalScale,
+                                          sin(coneAngle),
+                                          radialDir.z * normalScale));
+        }
+      };
+
+      glm::vec3 bottomLeftNormal = calculateConeNormal(bottomLeft);
+      glm::vec3 bottomRightNormal = calculateConeNormal(bottomRight);
+      glm::vec3 topLeftNormal = calculateConeNormal(topLeft);
+      glm::vec3 topRightNormal = calculateConeNormal(topRight);
 
       glm::vec2 uvBottomLeft = {u1, v1};
       glm::vec2 uvBottomRight = {u2, v1};
@@ -95,15 +116,18 @@ Model Cone(float radius, float height, int slices, int stacks) {
       unsigned int t2 = uvIdx.add(uvTopLeft);
       unsigned int t3 = uvIdx.add(uvTopRight);
 
-      unsigned int n = normIdx.add(sideNormal);
+      unsigned int n0 = normIdx.add(bottomLeftNormal);
+      unsigned int n1 = normIdx.add(bottomRightNormal);
+      unsigned int n2 = normIdx.add(topLeftNormal);
+      unsigned int n3 = normIdx.add(topRightNormal);
 
-      model.indices.push_back({i0, t0, n});
-      model.indices.push_back({i1, t1, n});
-      model.indices.push_back({i2, t2, n});
+      model.indices.push_back({i0, t0, n0});
+      model.indices.push_back({i1, t1, n1});
+      model.indices.push_back({i2, t2, n2});
 
-      model.indices.push_back({i2, t2, n});
-      model.indices.push_back({i1, t1, n});
-      model.indices.push_back({i3, t3, n});
+      model.indices.push_back({i2, t2, n2});
+      model.indices.push_back({i1, t1, n1});
+      model.indices.push_back({i3, t3, n3});
     }
   }
 
